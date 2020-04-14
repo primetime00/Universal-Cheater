@@ -1,0 +1,7 @@
+<ul class="list list--inset">
+    {{#each systems}}
+    <li class="list-item list--inset__item list-item--chevron list-item--tappable" onclick="{$}systemClick('{{this}}');">
+        <div class="list-item__center">{{this}}</div>
+    </li>
+    {{/each}}
+</ul>

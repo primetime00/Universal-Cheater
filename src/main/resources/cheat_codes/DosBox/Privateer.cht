@@ -1,0 +1,241 @@
+{
+  "game": "Wing Commander Privateer",
+  "regionSize": [16781312, 33558528],
+  "window": {
+    "windowClass": "SDL_app",
+    "windowTitle": "",
+    "partialMatch": true
+  },
+  "masterCodes": [
+    {
+      "master": "3A 00 00 ?? ?? ?? ?? ?? 00 ?? ?? ?? AC 0A 00 00 00 00 35 02",
+      "researchAfterFound": false,
+      "cheats" : [
+        {
+          "name": "Cash Money",
+          "codes": [
+            {
+              "offset": 3,
+              "value": 999999999
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FD FF ?? ?? 48 65 61 74 53 65 65 6B 00 4D 53 53 4C 54 59 50 45 00 48 45 41 54 53 45 45 4B 00 ?? ?? ?? ?? ?? ?? ?? 0B A0 ?? ?? ??",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 41,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Heat Seeker",
+          "codes": [
+            {
+              "offset": 41,
+              "value": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FD FF ?? ?? 46 46 6F 65 00 00 00 00 00 4D 53 53 4C 54 59 50 45 00 46 52 4E 44 46 4F 45 00 00 ?? ?? ?? ?? ?? ?? ?? 13 AF ?? ?? ??",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 41,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "FF Missles",
+          "codes": [
+            {
+              "offset": 41,
+              "value": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FD FF ?? ?? 50 72 74 6E 54 6F 72 70 00 54 4F 52 50 54 59 50 45 00 54 4F 52 50 45 44 4F 00 00 ?? ?? ?? ?? ?? ?? ?? 00 C8 ?? ?? ??",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 41,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Proton Torpedo",
+          "codes": [
+            {
+              "offset": 41,
+              "value": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FE FF ?? ?? 8C 24 04 00",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 23,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Missile Fire Rate 1",
+          "codes": [
+            {
+              "offset": 23,
+              "value": 640
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FE FF ?? ?? 8C 24 04 00",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 23,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Missile Fire Rate 2",
+          "codes": [
+            {
+              "offset": 23,
+              "value": 640
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FA FF ?? ?? 16 35 01 00 ?? ?? 00 00",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 18,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "100% Shields and Hull",
+          "codes": [
+            {
+              "offset": 54,
+              "value": 300
+            },
+            {
+              "offset": 60,
+              "value": 300
+            },
+            {
+              "offset": 66,
+              "value": 300
+            },
+            {
+              "offset": 72,
+              "value": 300
+            },
+            {
+              "offset": 20,
+              "value": 1
+            },
+            {
+              "offset": 22,
+              "value": 1
+            },
+            {
+              "offset": 24,
+              "value": 1
+            },
+            {
+              "offset": 26,
+              "value": 1
+            },
+            {
+              "offset": 57,
+              "value": 32767
+            },
+            {
+              "offset": 63,
+              "value": 32767
+            },
+            {
+              "offset": 69,
+              "value": 32767
+            },
+            {
+              "offset": 73,
+              "value": 32767
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FE FF ?? CB FA 19 00 00 00 00 00 00 00 00 ?? ?? ?? ??",
+      "researchAfterFound": false,
+      "cheats" : [
+        {
+          "name": "100% Energy",
+          "codes": [
+            {
+              "offset": 13,
+              "value": 33280
+            },
+            {
+              "offset": 16,
+              "value": 33280
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FC FF ?? ?? 00 AC 03 00 66 03 00 00 50 4C 41 53 4D 41 00 00 00 50 6C 61 73 00 50 4C 53 4D 54 59 50 45 00",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 51,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Gun Rate 1",
+          "codes": [
+            {
+              "offset": 51,
+              "value": 186
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "master": "FC FF ?? ?? 00 AC 03 00 66 03 00 00 50 4C 41 53 4D 41 00 00 00 50 6C 61 73 00 50 4C 53 4D 54 59 50 45 00",
+      "researchAfterFound": false,
+      "change": {
+        "offset": 51,
+        "delay": 0
+      },
+      "cheats" : [
+        {
+          "name": "Gun Rate 2",
+          "codes": [
+            {
+              "offset": 51,
+              "value": 186
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

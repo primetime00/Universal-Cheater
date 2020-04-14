@@ -1,0 +1,16 @@
+<ul class="list list--inset">
+    {{#each cheatList}}
+    <ons-list-item>
+        <div class="right">
+            <a id="resetLink" title="Reset"
+               href="#" onclick="{$}onReset(event.value, {{this.id}});">Reset</a>
+        </div>
+        <div class="center">
+            {{this.name}}
+        </div>
+        <div class="left">
+            <ons-switch {{checked this.enabled}} onchange="{$}onChange(event.value, {{this.id}});"></ons-switch>
+        </div>
+    </ons-list-item>
+    {{/each}}
+</ul>

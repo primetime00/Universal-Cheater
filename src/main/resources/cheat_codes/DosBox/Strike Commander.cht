@@ -1,0 +1,13 @@
+{
+  "game": "Strike Commander",
+  "regionSize": [16781312],
+  "window": {
+    "windowClass": "SDL_App",
+    "windowTitle": "",
+    "partialMatch": true
+  },
+  "scripts": [
+    "Strike Commander/Strike Commander - Ammo.js",
+    "Strike Commander/Strike Commander - Inv.js"
+  ]
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyApp</title>
+</head>
+<body>
+<ons-page id="helloworld-page">
+    <spa-component class="container" src="header"></spa-component>
+
+    <spa-component src="main"></spa-component>
+</ons-page>
+
+<!--
+<ons-page id="helloworld-page">
+    <div>
+    <spa-component src="header"></spa-component>
+    </div>
+    <spa-component src="main"></spa-component>
+</ons-page>
+-->
+
+<script src="//cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"          ></script>
+<script src="//cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"  ></script>
+<script src="//cdn.jsdelivr.net/gh/sucom/SPA.js@latest/dist/spa-bundle.min.js" ></script>
+<script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+<script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+<script>
+    Handlebars.registerHelper('json', function(context) {
+        return JSON.stringify(context);
+    });
+    Handlebars.registerHelper('checked', function(currentValue) {
+        return currentValue == true ? 'checked' : '';
+    });
+    ons.platform.select('android');
+</script>
+</body>
+</html>
