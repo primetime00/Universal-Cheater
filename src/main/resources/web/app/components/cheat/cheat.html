@@ -5,9 +5,15 @@
             <a id="resetLink" title="Reset"
                href="#" onclick="{$}onReset(event.value, {{this.id}});">Reset</a>
         </div>
+        {{#if this.hasCheats}}
         <div class="center">
             {{this.name}}
         </div>
+        {{else}}
+        <div class="center" style="color: lightgray;">
+            {{this.name}}
+        </div>
+        {{/if}}
         <div class="left">
             <ons-switch {{checked this.enabled}} onchange="{$}onChange(event.value, {{this.id}});"></ons-switch>
         </div>

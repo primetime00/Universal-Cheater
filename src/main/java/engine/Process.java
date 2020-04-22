@@ -1,98 +1,121 @@
 package engine;
 
-import cheat.Cheat;
-import cheat.Code;
-import cheat.MasterCode;
-import cheat.StaticCheat;
-import com.google.gson.Gson;
+import cheat.AOB;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
 import games.RunnableCheat;
+import io.Cheat;
 import io.CheatFile;
+import io.Code;
 import message.Message;
 import message.ProcessComplete;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import script.ArraySearchResult;
 import script.Script;
+import util.MemoryTools;
+import util.SearchTools;
 
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.sun.jna.platform.win32.WinNT.PAGE_READWRITE;
 
-public class Process implements Runnable {
+public class Process {
     static Logger log = LoggerFactory.getLogger(Process.class);
     private int pid;
     private ReentrantLock lock;
     private static WinNT.HANDLE handle = null;
-    //Map<String, MasterCode> masterList;
-    List<MasterCode> masterList;
+    CheatFile cheatFile;
+    List<io.Cheat> cheatList;
     List<Script> scriptList;
+    private List<Long> regionSize;
     private boolean closed;
     private Thread searchThread;
     private Thread writeThread;
     int cheatIndex;
     private RunnableCheat data;
-    private List<Long> regionSize;
     private String gameName;
     private final BlockingQueue<Message> messageQueue;
+    private Set<Long> regionSet;
+    private int passes;
+    private Map<AOB, Set<io.Cheat>> scanMap;
 
     public Process(RunnableCheat data, BlockingQueue<Message> messageQueue) throws Exception {
         this.data = data;
         this.lock = new ReentrantLock();
-        CheatFile file = readFile(data.getSystem(), data.getCht());
-        this.gameName = file.getGame();
-        this.pid = getProcessID(file.getWindow());
-        this.masterList = new ArrayList<>();
-        this.scriptList = new ArrayList<>();
+        this.scanMap = new HashMap<>();
+        cheatFile = readFile(CheatApplication.cheatDir, data.getSystem(), data.getCht());
+        this.gameName = cheatFile.getGame();
+        this.pid = getProcessID(cheatFile.getWindow());
+        this.cheatList = cheatFile.getCheats();
+        this.scriptList = createScripts(CheatApplication.cheatDir, data.getSystem());
         this.messageQueue = messageQueue;
-        this.regionSize = new ArrayList<>();
+        this.regionSize = cheatFile.getRegionSize();
+        this.regionSet = new HashSet<>();
+        this.passes = 0;
         openProcess();
-        applyCheatFile(file);
         this.closed = false;
     }
 
-    private void applyCheatFile(CheatFile file) {
-        cheatIndex = 1;
-        log.debug("Applying cheat file {}", file.getGame());
-        this.regionSize = file.getRegionSize();
-        if (file.getMasterCodes() != null) {
-            file.getMasterCodes().forEach(e -> {
-                MasterCode ct = new MasterCode(e.getMaster(), e.isResearchAfterFound(), e.getSearch(), e.getChange());
-                e.getCheats().forEach(f -> {
-                    StaticCheat cheat = new StaticCheat(ct, f.getId(), f.getName());
-                    ct.addCheat(cheat);
-                    f.getCodes().forEach(code -> {
-                        cheat.addCode(new Code(code.getOffset(), code.getValue()));
-                    });
-                });
-                masterList.add(ct);
-            });
-        }
-        if (file.getScripts() != null) {
-            file.getScripts().forEach(e -> {
+    public Process(int pid, String directory, String system, String cht, BlockingQueue<Message> messageQueue) throws Exception {
+        this.data = null;
+        this.lock = new ReentrantLock();
+        this.scanMap = new HashMap<>();
+        cheatFile = readFile(directory, system, cht);
+        this.gameName = cheatFile.getGame();
+        this.pid = pid;
+        this.cheatList = cheatFile.getCheats();
+        this.scriptList = createScripts(directory, system);
+        this.messageQueue = messageQueue;
+        this.regionSize = cheatFile.getRegionSize();
+        this.regionSet = new HashSet<>();
+        this.passes = 0;
+        openProcess();
+        this.closed = false;
+    }
+
+    private List<Script> createScripts(String cheatDir, String system) {
+        List<Script> scripts = new ArrayList<>();
+        if (cheatFile.getScripts() != null) {
+            cheatFile.getScripts().forEach(e -> {
                 try {
-                    Script s = new Script(String.format("%s/%s/%s", CheatApplication.cheatDir, data.getSystem(), e));
-                    scriptList.add(s);
+                    Script s = new Script(String.format("%s/%s/%s", cheatDir, system, e));
+                    scripts.add(s);
                 } catch (Exception ex) {
                     log.error(ex.getMessage());
                 }
             });
         }
+        return scripts;
     }
 
-    private CheatFile readFile(String system, String cht) throws Exception {
-        Gson gson = new Gson();
-        try (FileReader fr = new FileReader(String.format("%s/%s/%s", CheatApplication.cheatDir, system, cht))) {
-            CheatFile fileData = gson.fromJson(fr, CheatFile.class);
+    private CheatFile readFile(String cheatDir, String system, String cht) throws Exception {
+
+        try (FileReader fr = new FileReader(String.format("%s/%s/%s", cheatDir, system, cht))) {
+            CheatFile fileData = CheatApplication.getGson().fromJson(fr, CheatFile.class);
+            createScanMap(fileData);
             return fileData;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
+        }
+    }
+
+    private void createScanMap(CheatFile fileData) {
+        scanMap.clear();
+        if (fileData.getCheats() != null) {
+            for (io.Cheat cheat : fileData.getCheats()) {
+                AOB scan = cheat.getScan();
+                if (!scanMap.containsKey(scan)) {
+                    scanMap.put(scan, new HashSet<>());
+                }
+                Set<io.Cheat> cheatSet = scanMap.get(scan);
+                cheatSet.add(cheat);
+            }
         }
     }
 
@@ -151,31 +174,79 @@ public class Process implements Runnable {
         handle = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
     }
 
-    public void search() {
+    public void performSearch() {
         WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
         WinBase.SYSTEM_INFO info =  new WinBase.SYSTEM_INFO();
         long pos = 0;
         while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
             if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
                 if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size == mbi.regionSize.longValue())) {
-                    Memory mem = new Memory(mbi.regionSize.longValue());
-                    Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), mem, mbi.regionSize.intValue(), null);
-                    searchMemory(pos, mem, mbi.regionSize.longValue());
-                    log.trace("Searching...");
+                    if (passes == 0 || regionSet.contains(pos)) { //this is a new region for some reason, let's ignore it.
+                        Memory mem = new Memory(mbi.regionSize.longValue());
+                        Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), mem, mbi.regionSize.intValue(), null);
+                        cheatSearch(pos, mem);
+                        regionSet.add(pos);
+                        log.trace("Searching...");
+                    }
                 }
             }
             pos += mbi.regionSize.longValue();
         }
+        passes++;
+        searchComplete();
     }
 
-    private void searchMemory(long pos, Memory mem, long size) {
-        masterList.forEach((value) -> {
-            if (!value.isOld()) {//i'm not old.  I can still function
-                log.trace("I don't need to search since I'm not old.");
+    private void searchComplete() {
+        int count = 0;
+        if (cheatList != null) {
+            for (io.Cheat cheat : cheatList) {
+                count += cheat.getResults().size();
+                for (Code code : cheat.getCodes()) {
+                    if (code.getOperations() != null && code.getOperations().size() > 0) {
+                        code.getCurrentOperation().searchComplete(cheat.getResults());
+                    }
+                }
+            }
+        }
+        if (scriptList != null) {
+            for (Script script : scriptList) {
+                try {
+                    for (Cheat cheat : script.getAllCheats()) {
+                        count += cheat.getResults().size();
+                        for (Code code : cheat.getCodes()) {
+                            if (code.getOperations() != null && code.getOperations().size() > 0) {
+                                code.getCurrentOperation().searchComplete(cheat.getResults());
+                            }
+                        }
+                    }
+                    script.searchComplete();
+                } catch (Exception ex) {
+                    log.error(ex.getMessage());
+                }
+            }
+        }
+        log.trace("Total results: {}", count);
+    }
+
+    private void cheatSearch(long pos, Memory mem) {
+        scanMap.entrySet().forEach(entry -> {
+            Set<io.Cheat> cheats = entry.getValue();
+            if (cheats.stream().noneMatch(cheat -> cheat.getResults().getValidList(pos).size() == 0 || !cheat.operationsComplete())) { //we'll do not need to scan this set
                 return;
             }
-            value.search(pos, mem);
+            //scan one time for this entire set;
+            log.debug("Scanning for {}", cheats.iterator().next().getName());
+            List<ArraySearchResult> results = SearchTools.aobSearch(cheats.iterator().next().getScan(), pos, mem);
+            cheats.forEach(cheat -> cheat.getResults().addAll(results, pos));
         });
+        if (cheatList != null) {
+            for (io.Cheat cheat : cheatList) {
+                if (cheat.hasOperations() && !cheat.operationsComplete()) {
+                    cheat.getCodes().forEach(e -> e.processOperations(cheat.getResults(), pos, mem));
+                }
+            }
+        }
+
         scriptList.forEach((script) -> {
             try {
                 script.search(pos, mem);
@@ -186,79 +257,93 @@ public class Process implements Runnable {
     }
 
     private void writeCheat() {
-        masterList.forEach((value) -> value.write(handle));
-        scriptList.forEach((value) -> {
-            try {
-                value.write();
-            } catch (Exception e) {
-                log.error("Could not write cheats: {}", e.getMessage());
-            }
-        });
+        if (cheatList != null) {
+            cheatList.forEach(cheat -> {
+                if (!cheat.hasWritableCode())
+                    return;
+                if (cheat.verify()) {
+                    cheat.getCodes().forEach(c -> {
+                        if (c.operationsComplete())
+                            MemoryTools.writeCode(c, cheat.getResults().getAllValidList());
+                    });
+                }
+            });
+        }
+        if (scriptList != null) {
+            scriptList.forEach((script) -> {
+                try {
+                    script.write();
+                } catch (Exception e) {
+                    log.error("Could not write cheats: {}", e.getMessage());
+                }
+            });
+        }
     }
 
     public void writeCheats() {
         writeCheat();
     }
 
-    public void process() {
-        try {
-            lock.lock();
-            int ret = 0;
-            IntByReference ref = new IntByReference(ret);
-            log.trace("Searching...");
-            Kernel32.INSTANCE.GetExitCodeProcess(handle, ref);
-            if (ref.getValue() != Kernel32.STILL_ACTIVE) { //the process has closed
-                log.warn("The process has terminated!");
-                close();
-                closed = true;
+    public void searchLoop() {
+        int ret = 0;
+        IntByReference ref = new IntByReference(ret);
+        Kernel32.INSTANCE.GetExitCodeProcess(handle, ref);
+        if (ref.getValue() != Kernel32.STILL_ACTIVE) { //the process has closed
+            log.warn("The process has terminated!");
+            close();
+            closed = true;
+        }
+        //do we need to search ?
+        if (scriptList.size() > 0 || cheatList.size() > 0) {
+            try {
+                lock.lock();
+                performSearch();
             }
-            if (scriptList.size() > 0 || masterList.stream().anyMatch(MasterCode::isOld)) {
-                search();
+            finally {
+                lock.unlock();
             }
-        } finally {
-            lock.unlock();
         }
     }
 
     public void start() {
-        searchThread = new Thread(this);
-        writeThread = new Thread(() -> {
-            while (!closed) {
-                try {
-                    processWrites();
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        searchThread = new Thread(this::searchProcess);
+        writeThread = new Thread(this::writeProcess);
         searchThread.start();
         writeThread.start();
     }
 
     private void processWrites() {
+        int ret = 0;
+        IntByReference ref = new IntByReference(ret);
+        log.trace("Writing...");
+        Kernel32.INSTANCE.GetExitCodeProcess(handle, ref);
+        if (ref.getValue() != Kernel32.STILL_ACTIVE) { //the process has closed
+            log.warn("The process has terminated!");
+            close();
+            closed = true;
+        }
         try {
             lock.lock();
-            int ret = 0;
-            IntByReference ref = new IntByReference(ret);
-            log.trace("Writing...");
-            Kernel32.INSTANCE.GetExitCodeProcess(handle, ref);
-            if (ref.getValue() != Kernel32.STILL_ACTIVE) { //the process has closed
-                log.warn("The process has terminated!");
-                close();
-                closed = true;
-            }
             writeCheats();
         } finally {
             lock.unlock();
         }
     }
 
-    @Override
-    public void run() {
+    public void writeProcess() {
         while (!closed) {
             try {
-                process();
+                processWrites();
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    public void searchProcess() {
+        while (!closed) {
+            try {
+                searchLoop();
                 Thread.sleep(200);
             } catch (InterruptedException e) {
                 log.warn("Search thread interrupted!");
@@ -273,26 +358,33 @@ public class Process implements Runnable {
     }
 
     public void toggleCheat(int id) throws Exception {
-        Cheat code = findCheat(id);
-        code.toggle();
+        io.Cheat cheat = findCheat(id);
+        cheat.toggle();
     }
 
     public void resetCheat(int id) throws Exception {
-        Cheat code = findCheat(id);
-        code.reset();
+        io.Cheat cheat = findCheat(id);
+        cheat.reset();
     }
 
-    private MasterCode findMaster(int id) throws Exception {
-        for (MasterCode c : masterList) {
-            for (Cheat item : c.getCodes()) {
-                if (item.getId() == id)
-                    return c;
+
+    private io.Cheat findCheat(int id) throws Exception {
+        if (cheatList != null) {
+            for (io.Cheat cheat : cheatList) {
+                if (cheat.getId() == id)
+                    return cheat;
             }
         }
-        throw new Exception(String.format("Could not find master code containing cheat with id %d", id));
-    }
-
-    private Cheat findCheat(int id) throws Exception {
+        if (scriptList != null) {
+            for (Script script: scriptList) {
+                for (Cheat cheat: script.getAllCheats()) {
+                    if (cheat.getId() == id)
+                        return cheat;
+                }
+            }
+        }
+        return null;
+        /*
         for (MasterCode c : masterList) {
             for (Cheat item : c.getCodes()) {
                 if (item.getId() == id)
@@ -307,6 +399,8 @@ public class Process implements Runnable {
             }
         }
         throw new Exception(String.format("Could not find cheat with id %d", id));
+
+         */
     }
 
     public RunnableCheat getData() {
@@ -319,5 +413,13 @@ public class Process implements Runnable {
 
     public static WinNT.HANDLE getHandle() {
         return handle;
+    }
+
+    public CheatFile getCheatFile() {
+        return cheatFile;
+    }
+
+    public List<Script> getScriptList() {
+        return scriptList;
     }
 }

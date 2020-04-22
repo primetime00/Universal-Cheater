@@ -1,11 +1,15 @@
 package engine;
 
+import cheat.AOB;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.gson.*;
 import games.Game;
 import games.RunnableCheat;
+import io.CheatFile;
+import io.Code;
+import io.OperationProcessor;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
@@ -17,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import response.Failure;
 import response.GameList;
 import response.Response;
+import script.Value;
 
 import java.io.*;
 import java.net.URL;
@@ -29,15 +34,14 @@ public class CheatApplication {
     static Logger log = LoggerFactory.getLogger(CheatApplication.class);
     final static String cheatDir = "./cheats";
     final private ArrayBlockingQueue<Message> messageQueue;
-    final private Gson gson;
+    private static Gson gson;
     final private CheatThread cheatThread;
     private Javalin app;
 
     public CheatApplication() {
         messageQueue = new ArrayBlockingQueue<>(10);
-        gson = new GsonBuilder().create();
-        JavalinJson.setToJsonMapper(gson::toJson);
-        JavalinJson.setFromJsonMapper(gson::fromJson);
+        JavalinJson.setToJsonMapper(getGson()::toJson);
+        JavalinJson.setFromJsonMapper(getGson()::fromJson);
         cheatThread = new CheatThread(messageQueue);
     }
 
@@ -139,9 +143,13 @@ public class CheatApplication {
     }
 
     private void populateGames(Context ctx, String system) {
+        ctx.json(populateGameList(getGson(), system, cheatDir));
+    }
+
+    public static GameList populateGameList(Gson gson, String system, String cheatDir) {
         List<String> validFiles = new ArrayList();
         List<Game> games = new ArrayList<>();
-        for (File file: Files.fileTraverser().breadthFirst(new File(cheatDir+"/"+system)))
+        for (File file: Files.fileTraverser().breadthFirst(new File(cheatDir +"/"+system)))
         {
             if (file.isFile() && Files.getFileExtension(file.getAbsolutePath()).toUpperCase().equals("CHT")) {
                 validFiles.add(file.getAbsolutePath());
@@ -149,6 +157,7 @@ public class CheatApplication {
         }
         validFiles.stream().forEach(e -> {
             try {
+                CheatFile cheatFile = getGson().fromJson(new FileReader(e), CheatFile.class);
                 JsonElement root = JsonParser.parseReader(new FileReader(e));
                 if (!root.isJsonObject())
                     return;
@@ -161,13 +170,18 @@ public class CheatApplication {
                 System.out.println(String.format("Could not find file %s", e));
             }
         });
-        ctx.json(new GameList(games));
+        return new GameList(games);
     }
 
     private void populateSystems(Context ctx) {
-        File f = new File(cheatDir);
-        String files[] = f.list();
         JSONArray res = new JSONArray();
+        res.addAll(populateSystems(cheatDir));
+        ctx.json(res);
+    }
+
+    public static List<String> populateSystems(String cheatDir) {
+        File f = new File(cheatDir);
+        List<String> res = new ArrayList<>();
         for (File file: Iterables.limit(Files.fileTraverser().breadthFirst(new File(cheatDir)), 2))
         {
             if (file.isDirectory()) {
@@ -175,6 +189,19 @@ public class CheatApplication {
                 res.add(file.getName());
             }
         }
-        ctx.json(res);
+        return res;
+    }
+
+    public static Gson getGson() {
+        if (gson == null) {
+            gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .registerTypeAdapter(Value.class, new Value.ValueDeserializer())
+                    .registerTypeAdapter(AOB.class, new AOB.AOBDeserializer())
+                    .registerTypeAdapter(Code.class, new Code.CodeDeserializer())
+                    .registerTypeAdapter(OperationProcessor.class, new OperationProcessor.AOBDeserializer())
+                    .create();
+        }
+        return gson;
     }
 }

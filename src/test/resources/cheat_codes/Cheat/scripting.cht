@@ -1,0 +1,12 @@
+{
+  "game": "Unit Script Test Game",
+  "regionSize": [67108864, 67112960],
+  "window": {
+    "windowClass": "SDL_App",
+    "windowTitle": "",
+    "partialMatch": true
+  },
+  "scripts": [
+    "scripts/testscript.js"
+  ]
+}

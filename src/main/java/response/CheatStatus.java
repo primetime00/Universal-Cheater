@@ -1,6 +1,7 @@
 package response;
 
-import cheat.Cheat;
+
+import io.Cheat;
 
 import java.util.ArrayList;
 import java.util.List;

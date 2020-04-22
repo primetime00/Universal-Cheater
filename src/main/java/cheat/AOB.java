@@ -1,5 +1,12 @@
 package cheat;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import script.Value;
+
+import java.lang.reflect.Type;
 import java.util.Arrays;
 
 import static util.AOBTools.parseAOB;
@@ -67,4 +74,14 @@ public class AOB {
     public int hashCode() {
         return Arrays.hashCode(aob);
     }
+
+    static public class AOBDeserializer implements JsonDeserializer<AOB> {
+
+        @Override
+        public AOB deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+            String val = jsonElement.getAsString();
+            return new AOB(val);
+        }
+    }
+
 }

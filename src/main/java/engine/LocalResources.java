@@ -32,7 +32,11 @@ public class LocalResources {
     }
 
     public void process() {
-        final File f = new File("cheats");
+        process("cheats");
+    }
+
+    public void process(String dir) {
+        final File f = new File(dir);
         if (!f.exists()) {
             f.mkdirs();
         }
@@ -49,6 +53,7 @@ public class LocalResources {
         });
 
     }
+
 
     private void createCheatFile(File c, String key, String file) {
         URL url = getClass().getResource(String.format("/cheat_codes/%s/%s", key, file));

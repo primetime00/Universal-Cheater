@@ -1,12 +1,25 @@
 package script;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
 import com.sun.jna.Memory;
+import org.apache.commons.compress.utils.ByteUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.FormatTools;
 
+import java.io.Serializable;
+import java.lang.reflect.Type;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
-public class Value {
+public class Value implements Serializable {
+    public static Logger log = LoggerFactory.getLogger(Value.class);
+
     enum ValueType {
         BYTE,
         SHORT,
@@ -116,7 +129,8 @@ public class Value {
 
     public static Value createValue(String val) {
         Value v = new Value();
-        v.parseValue(val, false);
+        if (val != null)
+            v.parseValue(val, false);
         return v;
     }
 
@@ -125,6 +139,31 @@ public class Value {
         v.parseValue(val, true);
         return v;
     }
+
+    public long value() {
+        switch (type) {
+            case BYTE:
+                return getMemory().getByteBuffer(0, size()).get();
+            case SHORT:
+                return getMemory().getByteBuffer(0, size()).getShort();
+            case INT:
+                return getMemory().getByteBuffer(0, size()).getInt();
+            case LONG:
+                return getMemory().getByteBuffer(0, size()).getLong();
+            case FLOAT:
+                return 0;
+            case DOUBLE:
+                return 0;
+            case STRING:
+                return 0;
+            default:
+            case BYTES:
+                return 0;
+        }
+    }
+
+
+
 
     public Memory getMemory() {
         int vSize = size();
@@ -156,7 +195,7 @@ public class Value {
                 buf.put(bytes);
                 break;
         }
-        mem.write(0, buf.array(), 0, vSize);
+        mem.write(0, buf.order(ByteOrder.LITTLE_ENDIAN).array(), 0, vSize);
         return mem;
     }
 
@@ -164,4 +203,33 @@ public class Value {
     public String toString() {
         return originalValue;
     }
+
+    static public class ValueDeserializer implements JsonDeserializer<Value> {
+
+        @Override
+        public Value deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+            String val = jsonElement.getAsString();
+            Value v = new Value();
+            v.parseValue(val, false);
+            return v;
+        }
+    }
+
+    public boolean equals(byte[] bytes) {
+        if (bytes.length != size())
+            return false;
+        return Arrays.equals(bytes, getMemory().getByteArray(0, bytes.length));
+    }
+
+    public static boolean range(byte[] bytes, Value low, Value high) {
+        try {
+            long val = ByteUtils.fromLittleEndian(bytes);
+            return val <= high.value() && val >= low.value();
+        } catch (Exception e) {
+            log.error("Could not convert bytes to big integer!");
+            return false;
+        }
+    }
+
+
 }

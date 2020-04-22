@@ -1,13 +1,14 @@
 package engine;
 
-import cheat.Cheat;
 import games.RunnableCheat;
+import io.Cheat;
 import message.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import response.Failure;
 import response.Response;
 import response.Success;
+import script.Script;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,9 +95,33 @@ public class CheatThread implements Runnable {
     private void getCheatStatus(CompletableFuture<Response> response) {
         List<Cheat> cheats = new ArrayList<>();
         if (currentProcess != null) {
+            if (currentProcess.cheatList != null) {
+                for (Cheat c : currentProcess.cheatList) {
+                    c.updateData();
+                    cheats.add(c);
+                }
+            }
+            if (currentProcess.scriptList != null) {
+                for (Script script : currentProcess.scriptList) {
+                    for (Cheat c : script.getAllCheats()) {
+                        c.updateData();
+                        cheats.add(c);
+                    }
+
+                }
+            }
+            response.complete(new response.CheatStatus(cheats, currentProcess.getData().getSystem(), currentProcess.getGameName(), currentProcess.getData().getCht()));
+        }
+        else {
+            response.complete(new response.CheatStatus(null, "", "", ""));
+        }
+        /*
+        List<Cheat> cheats = new ArrayList<>();
+        if (currentProcess != null) {
             currentProcess.masterList.forEach((value) -> {
                 cheats.addAll(value.getCodes());
             });
+
             currentProcess.scriptList.forEach((value) -> {
                 try {
                     cheats.addAll(value.getCheats());
@@ -110,7 +135,7 @@ public class CheatThread implements Runnable {
         else {
             response.complete(new response.CheatStatus(null, "", "", ""));
         }
-
+*/
     }
 
     private void exitCheat(CompletableFuture<Response> response) {

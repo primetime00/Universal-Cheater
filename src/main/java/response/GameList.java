@@ -15,4 +15,8 @@ public class GameList extends Response {
         }
         this.gameList = list;
     }
+
+    public List<Game> getGameList() {
+        return gameList;
+    }
 }

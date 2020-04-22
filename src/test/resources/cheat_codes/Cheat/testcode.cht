@@ -1,0 +1,63 @@
+{
+  "game": "Unit Test Game",
+  "regionSize": [67108864, 67112960],
+  "window": {
+    "windowClass": "SDL_App",
+    "windowTitle": "",
+    "partialMatch": true
+  },
+  "cheats": [
+    {
+      "name": "Cheat 1",
+      "scan": "46 41 4B 45 00",
+      "codes": [
+        {
+          "offset": 7,
+          "value": "9",
+          "operations":
+          [
+            {
+              "type": "filter",
+              "data": {
+                "offset": 5,
+                "expect": "1"
+              }
+            },
+            {
+              "type": "detect",
+              "data": {
+                "offset": 7,
+                "max": "7",
+                "min": "3"
+              }
+            }
+          ]
+        },
+        {
+          "offset": 11,
+          "value": "999"
+        }
+      ]
+    },
+    {
+      "name": "Share Cheat 1",
+      "scan": "46 41 4B 45 00",
+      "codes": [
+        {
+          "offset": 7,
+          "value": "9"
+        }
+      ]
+    },
+    {
+      "name": "Share Cheat 2",
+      "scan": "46 41 4B 45 00",
+      "codes": [
+        {
+          "offset": 7,
+          "value": "9"
+        }
+      ]
+    }
+  ]
+}

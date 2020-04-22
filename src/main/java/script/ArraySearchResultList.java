@@ -1,6 +1,10 @@
 package script;
 
 import com.google.common.collect.Lists;
+import engine.Process;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import util.FormatTools;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
@@ -8,15 +12,18 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ArraySearchResultList {
+    static Logger log = LoggerFactory.getLogger(ArraySearchResultList.class);
     private Map<Long, Set<ArraySearchResult>> results;
     private Object scriptData = null;
     private ScriptEngine engine;
     private Script script;
+    private boolean locked;
 
     public ArraySearchResultList(Script s) {
         this.script = s;
         this.engine = s.getEngine();
         results = new HashMap<>();
+        this.locked = false;
         try {
             this.scriptData = s.getEngine().eval("(function() { return {} })(this)");
         } catch (ScriptException e) {
@@ -24,14 +31,23 @@ public class ArraySearchResultList {
         }
     }
 
+    public ArraySearchResultList() {
+        results = new HashMap<>();
+        this.script = null;
+        this.engine = null;
+    }
+
     public void add(ArraySearchResult result, long base) {
+        if (locked)
+            return;
         Set<ArraySearchResult> rList = results.get(base);
         if (rList == null) {
             rList = new HashSet<>();
+            log.debug("Adding new base {}", FormatTools.valueToHex(base));
             results.put(base, rList);
         }
         rList.add(result);
-        if (result.getScriptData() == null) {
+        if (result.getScriptData() == null && script != null) {
             try {
                 result.setScriptData(script.getEngine().eval("(function(){return {}})(this)"));
             } catch (ScriptException e) {
@@ -66,10 +82,12 @@ public class ArraySearchResultList {
     }
 
     public void clear() {
-        try {
-            this.scriptData = engine.eval("(function() { return {} })(this)");
-        } catch (ScriptException e) {
-            e.printStackTrace();
+        if (this.scriptData != null) {
+            try {
+                this.scriptData = engine.eval("(function() { return {} })(this)");
+            } catch (ScriptException e) {
+                e.printStackTrace();
+            }
         }
         results.clear();
     }
@@ -89,5 +107,9 @@ public class ArraySearchResultList {
 
     public int size() {
         return results.size();
+    }
+
+    public void lock() {
+        locked = true;
     }
 }

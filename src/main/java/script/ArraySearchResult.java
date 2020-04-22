@@ -16,6 +16,7 @@ public class ArraySearchResult {
     private boolean valid;
     private boolean scanned;
     private Object scriptData;
+    private Object miscData;
 
     public ArraySearchResult(AOB aob, long base, long offset) {
         this.base = base;
@@ -34,9 +35,13 @@ public class ArraySearchResult {
         return offset+base;
     }
 
-    public String getByteString(Memory mem, long pos, int size) {
+    public byte[] getBytes(Memory mem, long pos, int size) {
         byte [] bytes = mem.getByteArray(getOffset() + pos, size);
-        return FormatTools.bytesToString(bytes);
+        return bytes;
+    }
+
+    public String getByteString(Memory mem, long pos, int size) {
+        return FormatTools.bytesToString(getBytes(mem, pos, size));
     }
 
     public long getBytesValue(Memory mem, long pos, int size) {
@@ -57,18 +62,6 @@ public class ArraySearchResult {
     public long readValue(long pos, int size) {
         Memory mem = readMemory(pos, size);
         return FormatTools.memoryToValue(mem, 0, size);
-    }
-
-    public ScriptCheat createCheat(String name, long pos) {
-        return new ScriptCheat(name, this,  getAddress() + pos);
-    }
-
-    public Verifier createVerifier(int offset, AOB aob) {
-        return new Verifier(offset, aob, getAddress());
-    }
-
-    public ScriptCheat createCheat(String name) {
-        return new ScriptCheat(name, this, getAddress());
     }
 
     public boolean verify() {
@@ -134,5 +127,17 @@ public class ArraySearchResult {
 
     public void setScriptData(Object scriptData) {
         this.scriptData = scriptData;
+    }
+
+    public Object getMiscData() {
+        return miscData;
+    }
+
+    public void setMiscData(Object miscData) {
+        this.miscData = miscData;
+    }
+
+    public long getBase() {
+        return base;
     }
 }

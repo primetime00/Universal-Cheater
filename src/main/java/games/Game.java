@@ -10,4 +10,16 @@ public class Game {
         this.game = game;
         this.cht = cht;
     }
+
+    public String getSystem() {
+        return system;
+    }
+
+    public String getGame() {
+        return game;
+    }
+
+    public String getCht() {
+        return cht;
+    }
 }
