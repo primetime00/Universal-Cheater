@@ -35,6 +35,15 @@ public class Code {
         }
     }
 
+    public Code(List<OVPair> offsets, List<OperationProcessor> operations) {
+        this.offsets = offsets;
+        this.operations = operations;
+        if (this.operations != null && this.operations.size() > 0)
+            this.currentProcessor = 0;
+        else
+            this.currentProcessor = -1;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -76,6 +85,25 @@ public class Code {
         return operations != null && operations.size() > 0;
     }
 
+    public boolean hasOperations(Class<? extends OperationProcessor> opClass) {
+        if (hasOperations()) {
+            return operations.stream().anyMatch(opClass::isInstance);
+        }
+        return false;
+    }
+
+    public List<OperationProcessor> getFilterList(Class<? extends OperationProcessor> opClass) {
+        List<OperationProcessor> ops = new ArrayList<>();
+        if (hasOperations()) {
+            for (OperationProcessor op : operations) {
+                if (opClass.isInstance(op))
+                    ops.add(op);
+            }
+        }
+        return ops;
+    }
+
+
     public boolean operationsComplete() {
         if (!hasOperations())
             return true;
@@ -84,7 +112,7 @@ public class Code {
 
 
     public void processOperations(ArraySearchResultList results, long pos, Memory mem) {
-        if (getOperations() == null || currentProcessor >= getOperations().size())
+        if (getOperations() == null || getOperations().size() == 0 || currentProcessor >= getOperations().size())
             return;
         if (getOperations().get(currentProcessor).isComplete())
             currentProcessor++;

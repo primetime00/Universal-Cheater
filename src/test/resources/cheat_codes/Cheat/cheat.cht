@@ -1,9 +1,9 @@
 {
   "game": "Test Game",
-  "regionSize": [16781312],
+  "regionSize": [],
   "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "UnitTestApp.exe",
     "partialMatch": true
   },
   "cheats": [
@@ -37,14 +37,18 @@
     {
       "name": "Cheat No Op",
       "scan": "55 4F 52 49 4F 4E 31 35 30 0C",
+      "trigger": {
+        "type": "button",
+        "behavior": "onetime"
+      },
       "codes": [
         {
           "offset": 270,
-          "value": "0CFEFFFF"
+          "value": "b 0CFEFFFF"
         },
         {
           "offset": 278,
-          "value": "0CFEFFFF"
+          "value": "b 0CFEFFFF"
         }
       ]
     },
@@ -54,14 +58,39 @@
       "codes": [
         {
           "offset": 270,
-          "value": "0CFEFFFF",
-          "offsets": [ { "offset": 278, "value": "0CFEFFFF" },{ "offset": 282, "value": "0CFEFFFF" } ]
+          "value": "b 0CFEFFFF",
+          "offsets": [ { "offset": 278, "value": "b 0CFEFFFF" },{ "offset": 282, "value": "b 0CFEFFFF" } ]
         },
         {
-          "offsets": [ { "offset": 278, "value": "0CFEFFFF" },{ "offset": 282, "value": "0CFEFFFF" } ],
+          "offsets": [ { "offset": 278, "value": "b 0CFEFFFF" },{ "offset": 282, "value": "b 0CFEFFFF" } ],
           "operations": [ { "type": "detect", "data": { "offset": 122, "min": "100", "max": "200" } } ]
         }
       ]
+    },
+    {
+      "name": "Trigger Cheat",
+      "scan": "00 4F 52 49 4F 4E 31 35 30 0E",
+      "trigger": { "type":  "botton", "behavior":  "onetime"},
+      "codes": [
+        {
+          "offset": 170,
+          "value": "b 0CFEFFFF",
+          "offsets": [ { "offset": 278, "value": "b 0CFEFFFF" },{ "offset": 282, "value": "b 0CFEFFFF" } ]
+        }
+      ]
+    },
+    {
+      "name": "Cheat Including Script",
+      "scan": "00 4F 52 49 4F 4E 31 35 30 0E",
+      "script": "inc.js",
+      "codes": [
+        {
+          "offset": 370,
+          "value": "h BEEF",
+          "offsets": [ { "offset": 278, "value": "b 0CFEFFFF" },{ "offset": 282, "value": "d 33 s 4" } ]
+        }
+      ]
     }
+
   ]
 }

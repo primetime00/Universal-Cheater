@@ -8,16 +8,17 @@ import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
 import script.ArraySearchResultList;
 import script.Value;
+import util.FormatTools;
 
 import java.util.Objects;
 
 public class Detect implements OperationProcessor {
     static Logger log = LoggerFactory.getLogger(Detect.class);
-    private int offset;
-    private Value min;
-    private Value max;
-    private int size;
-    private boolean complete;
+    protected int offset;
+    protected Value min;
+    protected Value max;
+    protected int size;
+    protected boolean complete;
 
     static public class DetectData {
         enum DetectRange {EQUAL, INRANGE, OUTRANGE};
@@ -100,7 +101,7 @@ public class Detect implements OperationProcessor {
 
     @Override
     public int hashCode() {
-        return Objects.hash(offset, min, max, size, complete);
+        return Objects.hash(offset, min, max, size);
     }
 
     public int getOffset() {
@@ -126,7 +127,7 @@ public class Detect implements OperationProcessor {
                 res.setMiscData(new DetectData(res.getBytesValue(mem, offset, size == 0 ? max.size() : size)));
             }
             DetectData detectData = (DetectData) res.getMiscData();
-            detectData.process(res.readValue(getOffset(), size == 0 ? max.size() : size), max.value(), min.value());
+            detectData.process(res.readValue(getOffset(), size == 0 ? max.size() : size), max.getDecimal().longValue(), min.getDecimal().longValue());
             if (detectData.getDetectRange() == DetectData.DetectRange.OUTRANGE)
                 res.setValid(false);
             detectData.incrementRound();
@@ -152,6 +153,9 @@ public class Detect implements OperationProcessor {
             }
         }
         complete = found && resultList.getAllValidList().size() > 0;
+        if (complete) {
+            log.trace("Found valid address at {}", FormatTools.valueToHex(resultList.getAllValidList().get(0).getAddress()));
+        }
     }
 
     @Override

@@ -62,7 +62,7 @@ public class CheatStatus extends Response {
         hash = 31 * hash + (game == null ? 0 : game.hashCode());
         if (cheatList != null) {
             for (Cheat c : cheatList) {
-                hash = 31 * hash + c.hashCode();
+                hash = 31 * hash + c.webHashCode();
             }
         }
         return hash;

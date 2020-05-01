@@ -2,7 +2,7 @@
   "game": "Wolfenstein 3D",
   "regionSize": [16781312, 33558528],
   "window": {
-    "windowClass": "RetroArch",
+    "windowClass": "SDL_App",
     "windowTitle": "",
     "partialMatch": true
   },

@@ -2,7 +2,6 @@ package response;
 
 import games.Game;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class GameList extends Response {

@@ -50,7 +50,7 @@ public class Filter implements OperationProcessor{
 
     @Override
     public int hashCode() {
-        return Objects.hash(offset, expect, low, high, complete);
+        return Objects.hash(offset, expect, low, high);
     }
 
     public int getOffset() {

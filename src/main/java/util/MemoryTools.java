@@ -9,7 +9,6 @@ import io.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
-import script.Value;
 
 import java.util.List;
 
@@ -19,6 +18,7 @@ public class MemoryTools {
         results.forEach(result -> {
             code.getOffsets().forEach(ovPair -> {
                 long code_address = result.getAddress() + ovPair.getOffset();
+                log.trace("Writing {} to {}", code.getFirstOffsetPair().getValue().getDecimal(), FormatTools.valueToHex(code_address));
                 Memory mem = ovPair.getValue().getMemory();
                 Kernel32.INSTANCE.WriteProcessMemory(Process.getHandle(), new Pointer(code_address), mem, (int) mem.size(), null);
             });
@@ -28,6 +28,8 @@ public class MemoryTools {
     static public boolean writeCheat(Cheat cheat) {
         cheat.verify();
         if (!cheat.hasWritableCode())
+            return false;
+        if (!cheat.isTriggered())
             return false;
         List<ArraySearchResult> results = cheat.getResults().getAllValidList();
         if (results == null) {

@@ -1,5 +1,5 @@
 (function(context) {
-    context.ammoCheat = new Cheat("Unlimited Aircraft Ammo", "32 30 4D 4D 00 00 00 00 00",
+    context.ammoCheat = new Cheat("Unlimited Aircraft Ammo And Countermeasures (fire 20MM once)", "32 30 4D 4D 00 00 00 00 00",
         new Code(-7, "1000",
             new Filter(-12, "8"),
             new Filter(-7, "1", "1000"),
@@ -18,21 +18,24 @@
         ammoCheat.getCodes().get(0).addOffset(466, "99");
     };
 
-    context.search = function(memory, base) {
-        cheatSearch(ammoCheat, memory, base);
-    };
+    context.cheatSuccess = function(cheat, codesWritten, totalCodes) {
+        if (cheat == ammoCheat) {
+            if (!missilesCodesEnabled) {
+                print("adding missiles");
+                createMissileCheats();
+            }
+        }
 
-    context.write = function() {
-        var ammoWritten = writeCheat(ammoCheat);
-        if (ammoWritten && !missilesCodesEnabled) {
-            print("adding missiles")
-            createMissileCheats();
+    }
+
+    context.cheatFailed = function(cheat) {
+        if (cheat == ammoCheat) {
+            if (missilesCodesEnabled) {
+                print("removing missiles");
+                removeMissileCheats();
+            }
         }
-        else if (!ammoWritten && missilesCodesEnabled) {
-            print("removing missiles")
-            removeMissileCheats();
-        }
-    };
+    }
 
     context.searchComplete = function() {
 

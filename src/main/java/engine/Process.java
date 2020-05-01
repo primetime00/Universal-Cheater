@@ -1,7 +1,7 @@
 package engine;
 
-import cheat.AOB;
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
@@ -9,17 +9,19 @@ import games.RunnableCheat;
 import io.Cheat;
 import io.CheatFile;
 import io.Code;
+import io.Trigger;
 import message.Message;
 import message.ProcessComplete;
+import org.jnativehook.GlobalScreen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import script.ArraySearchResult;
 import script.Script;
-import util.MemoryTools;
-import util.SearchTools;
 
 import java.io.FileReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,9 +29,12 @@ import static com.sun.jna.platform.win32.WinNT.PAGE_READWRITE;
 
 public class Process {
     static Logger log = LoggerFactory.getLogger(Process.class);
+    static private Process instance = null;
+    static public boolean debugMode = false;
     private int pid;
     private ReentrantLock lock;
     private static WinNT.HANDLE handle = null;
+    private WinNT.HWND selectedHWND;
     CheatFile cheatFile;
     List<io.Cheat> cheatList;
     List<Script> scriptList;
@@ -37,54 +42,63 @@ public class Process {
     private boolean closed;
     private Thread searchThread;
     private Thread writeThread;
-    int cheatIndex;
     private RunnableCheat data;
     private String gameName;
     private final BlockingQueue<Message> messageQueue;
     private Set<Long> regionSet;
     private int passes;
-    private Map<AOB, Set<io.Cheat>> scanMap;
+    private ScanMap scanMap;
+    private KeyHandler keyHandler;
+
+
+    public Process(BlockingQueue<Message> messageQueue) throws Exception {
+        this.lock = new ReentrantLock();
+        this.scanMap = ScanMap.get();
+        this.messageQueue = messageQueue;
+        this.regionSet = new HashSet<>();
+        this.passes = 0;
+        this.closed = false;
+        instance = this;
+    }
 
     public Process(RunnableCheat data, BlockingQueue<Message> messageQueue) throws Exception {
+        this(messageQueue);
         this.data = data;
-        this.lock = new ReentrantLock();
-        this.scanMap = new HashMap<>();
-        cheatFile = readFile(CheatApplication.cheatDir, data.getSystem(), data.getCht());
-        this.gameName = cheatFile.getGame();
+        this.cheatFile = readFile(data);
         this.pid = getProcessID(cheatFile.getWindow());
-        this.cheatList = cheatFile.getCheats();
-        this.scriptList = createScripts(CheatApplication.cheatDir, data.getSystem());
-        this.messageQueue = messageQueue;
-        this.regionSize = cheatFile.getRegionSize();
-        this.regionSet = new HashSet<>();
-        this.passes = 0;
         openProcess();
-        this.closed = false;
-    }
-
-    public Process(int pid, String directory, String system, String cht, BlockingQueue<Message> messageQueue) throws Exception {
-        this.data = null;
-        this.lock = new ReentrantLock();
-        this.scanMap = new HashMap<>();
-        cheatFile = readFile(directory, system, cht);
         this.gameName = cheatFile.getGame();
-        this.pid = pid;
         this.cheatList = cheatFile.getCheats();
-        this.scriptList = createScripts(directory, system);
-        this.messageQueue = messageQueue;
+        this.scriptList = createScripts(data);
         this.regionSize = cheatFile.getRegionSize();
-        this.regionSet = new HashSet<>();
-        this.passes = 0;
-        openProcess();
-        this.closed = false;
+        keyHandler = new KeyHandler();
+        if (!debugMode) {
+            GlobalScreen.addNativeKeyListener(keyHandler);
+            this.scanMap.addUpdateHandler(() -> keyHandler.update(scanMap));
+        }
+        this.scanMap.update(this.cheatList, this.scriptList);
+        if (cheatList != null)
+            this.cheatList.stream().filter(e->e.getScriptHandler() != null).forEach(c -> c.getScriptHandler().initialize(c));
+
     }
 
-    private List<Script> createScripts(String cheatDir, String system) {
+      public static Process create(RunnableCheat data, BlockingQueue<Message> messageQueue) throws Exception {
+        if (instance != null) {
+            log.warn("You are opening a new process without closing the old");
+            instance.exit();
+        }
+        instance = new Process(data, messageQueue);
+        return instance;
+    }
+
+
+
+    private List<Script> createScripts(RunnableCheat data) {
         List<Script> scripts = new ArrayList<>();
         if (cheatFile.getScripts() != null) {
             cheatFile.getScripts().forEach(e -> {
                 try {
-                    Script s = new Script(String.format("%s/%s/%s", cheatDir, system, e));
+                    Script s = new Script(String.format("%s/%s/scripts/%s", data.getDirectory(), data.getSystem(), e));
                     scripts.add(s);
                 } catch (Exception ex) {
                     log.error(ex.getMessage());
@@ -94,51 +108,41 @@ public class Process {
         return scripts;
     }
 
-    private CheatFile readFile(String cheatDir, String system, String cht) throws Exception {
+    private CheatFile readFile(RunnableCheat data) throws Exception {
 
-        try (FileReader fr = new FileReader(String.format("%s/%s/%s", cheatDir, system, cht))) {
-            CheatFile fileData = CheatApplication.getGson().fromJson(fr, CheatFile.class);
-            createScanMap(fileData);
-            return fileData;
+        try (FileReader fr = new FileReader(String.format("%s/%s/%s", data.getDirectory(), data.getSystem(), data.getCht()))) {
+            return CheatApplication.getGson().fromJson(fr, CheatFile.class);
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
 
-    private void createScanMap(CheatFile fileData) {
-        scanMap.clear();
-        if (fileData.getCheats() != null) {
-            for (io.Cheat cheat : fileData.getCheats()) {
-                AOB scan = cheat.getScan();
-                if (!scanMap.containsKey(scan)) {
-                    scanMap.put(scan, new HashSet<>());
-                }
-                Set<io.Cheat> cheatSet = scanMap.get(scan);
-                cheatSet.add(cheat);
-            }
-        }
-    }
-
     private int getProcessID(CheatFile.Window window) throws Exception {
-        char title[] = new char[1024];
-        WinDef.HWND hwnd = User32.INSTANCE.FindWindow(window.getWindowClass(), null);
-        if (hwnd != null) {
-            User32.INSTANCE.GetWindowText(hwnd, title, 1024);
-            if (window.isPartialMatch()) {
-                if (new String(title).contains(window.getWindowTitle())) {
-                    IntByReference ref = new IntByReference();
-                    User32.INSTANCE.GetWindowThreadProcessId(hwnd, ref);
-                    return ref.getValue();
+        selectedHWND = null;
+        int count = 0;
+        while (count < 5) {
+            User32.INSTANCE.EnumWindows((hwnd, pointer) -> {
+                char[] windowText = new char[512];
+                User32.INSTANCE.GetWindowText(hwnd, windowText, 512);
+                String wText = Native.toString(windowText);
+                if (wText.contains(window.getWindowTitle())) {
+                    selectedHWND = hwnd;
+                    return false;
                 }
-            } else {
-                if (new String(title).equals(window.getWindowTitle())) {
-                    IntByReference ref = new IntByReference();
-                    User32.INSTANCE.GetWindowThreadProcessId(hwnd, ref);
-                    return ref.getValue();
-                }
-            }
+                return true;
+            }, null);
+            if (selectedHWND != null)
+                break;
+            count++;
+            Thread.sleep(500);
         }
-        throw new Exception("Could not find window!");
+
+        if (selectedHWND == null) {
+            throw new Exception("Could not find window!");
+        }
+        IntByReference ref = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(selectedHWND, ref);
+        return ref.getValue();
     }
 
     public void exit() {
@@ -168,6 +172,12 @@ public class Process {
             Kernel32.INSTANCE.CloseHandle(handle);
             handle = null;
         }
+        if (keyHandler != null) {
+            GlobalScreen.removeNativeKeyListener(keyHandler);
+            keyHandler = null;
+        }
+        ScanMap.reset();
+        instance = null;
     }
 
     private void openProcess() {
@@ -178,6 +188,7 @@ public class Process {
         WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
         WinBase.SYSTEM_INFO info =  new WinBase.SYSTEM_INFO();
         long pos = 0;
+        scanMap.update(cheatList, scriptList);
         while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
             if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
                 if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size == mbi.regionSize.longValue())) {
@@ -229,59 +240,11 @@ public class Process {
     }
 
     private void cheatSearch(long pos, Memory mem) {
-        scanMap.entrySet().forEach(entry -> {
-            Set<io.Cheat> cheats = entry.getValue();
-            if (cheats.stream().noneMatch(cheat -> cheat.getResults().getValidList(pos).size() == 0 || !cheat.operationsComplete())) { //we'll do not need to scan this set
-                return;
-            }
-            //scan one time for this entire set;
-            log.debug("Scanning for {}", cheats.iterator().next().getName());
-            List<ArraySearchResult> results = SearchTools.aobSearch(cheats.iterator().next().getScan(), pos, mem);
-            cheats.forEach(cheat -> cheat.getResults().addAll(results, pos));
-        });
-        if (cheatList != null) {
-            for (io.Cheat cheat : cheatList) {
-                if (cheat.hasOperations() && !cheat.operationsComplete()) {
-                    cheat.getCodes().forEach(e -> e.processOperations(cheat.getResults(), pos, mem));
-                }
-            }
-        }
-
-        scriptList.forEach((script) -> {
-            try {
-                script.search(pos, mem);
-            } catch (Exception ex) {
-                log.error(ex.getMessage());
-            }
-        });
-    }
-
-    private void writeCheat() {
-        if (cheatList != null) {
-            cheatList.forEach(cheat -> {
-                if (!cheat.hasWritableCode())
-                    return;
-                if (cheat.verify()) {
-                    cheat.getCodes().forEach(c -> {
-                        if (c.operationsComplete())
-                            MemoryTools.writeCode(c, cheat.getResults().getAllValidList());
-                    });
-                }
-            });
-        }
-        if (scriptList != null) {
-            scriptList.forEach((script) -> {
-                try {
-                    script.write();
-                } catch (Exception e) {
-                    log.error("Could not write cheats: {}", e.getMessage());
-                }
-            });
-        }
+        scanMap.search(pos, mem);
     }
 
     public void writeCheats() {
-        writeCheat();
+        scanMap.write(cheatList, scriptList);
     }
 
     public void searchLoop() {
@@ -359,11 +322,29 @@ public class Process {
 
     public void toggleCheat(int id) throws Exception {
         io.Cheat cheat = findCheat(id);
+        if (cheat == null) {
+            log.error("Could not find cheat {}", id);
+            return;
+        }
         cheat.toggle();
     }
 
+    public void triggerCheat(int id) throws Exception {
+        io.Cheat cheat = findCheat(id);
+        if (cheat == null) {
+            log.error("Could not find cheat {}", id);
+            return;
+        }
+        cheat.trigger(new Trigger.TriggerInfo(cheat.getTrigger().getBehavior(), 0, false));
+    }
+
+
     public void resetCheat(int id) throws Exception {
         io.Cheat cheat = findCheat(id);
+        if (cheat == null) {
+            log.error("Could not find cheat {}", id);
+            return;
+        }
         cheat.reset();
     }
 
@@ -421,5 +402,9 @@ public class Process {
 
     public List<Script> getScriptList() {
         return scriptList;
+    }
+
+    public static Process getInstance() {
+        return instance;
     }
 }

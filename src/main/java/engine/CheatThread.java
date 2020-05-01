@@ -12,13 +12,13 @@ import script.Script;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 
 public class CheatThread implements Runnable {
     static Logger log = LoggerFactory.getLogger(CheatThread.class);
     private BlockingQueue<Message> messageQueue;
-    private Process currentProcess;
 
     public CheatThread(BlockingQueue<Message> messageQueue) {
         this.messageQueue = messageQueue;
@@ -44,13 +44,15 @@ public class CheatThread implements Runnable {
                 else if (msg.getData() instanceof CheatToggle) {
                     toggleCheat(((CheatToggle)msg.getData()).getId(),  msg.getResponse());
                 }
+                else if (msg.getData() instanceof CheatTrigger) {
+                    triggerCheat(((CheatTrigger)msg.getData()).getId(),  msg.getResponse());
+                }
                 else if (msg.getData() instanceof CheatReset) {
                     resetCheat(((CheatReset)msg.getData()).getId(),  msg.getResponse());
                 }
                 else if (msg.getData() instanceof ProcessComplete) {
                     log.info("engine.Process thread completed {}", ((ProcessComplete)msg.getData()).isTerminated());
-                    currentProcess.close();
-                    currentProcess = null;
+                    Optional.ofNullable(Process.getInstance()).ifPresent(Process::close);
                 }
             } catch (InterruptedException e) {
                 log.warn(e.getMessage());
@@ -63,8 +65,8 @@ public class CheatThread implements Runnable {
 
     private void toggleCheat(int id, CompletableFuture<Response> response) {
         try {
-            if (currentProcess != null) {
-                currentProcess.toggleCheat(id);
+            if (Process.getInstance() != null) {
+                Process.getInstance().toggleCheat(id);
                 response.complete(new Success());
             }
             else {
@@ -76,10 +78,26 @@ public class CheatThread implements Runnable {
         }
     }
 
+    private void triggerCheat(int id, CompletableFuture<Response> response) {
+        try {
+            if (Process.getInstance() != null) {
+                Process.getInstance().triggerCheat(id);
+                response.complete(new Success());
+            }
+            else {
+                response.complete(new Failure("No cheats running."));
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            response.complete(new Failure(e.getMessage()));
+        }
+    }
+
+
     private void resetCheat(int id, CompletableFuture<Response> response) {
         try {
-            if (currentProcess != null) {
-                currentProcess.resetCheat(id);
+            if (Process.getInstance() != null) {
+                Process.getInstance().resetCheat(id);
                 response.complete(new Success());
             }
             else {
@@ -94,15 +112,15 @@ public class CheatThread implements Runnable {
 
     private void getCheatStatus(CompletableFuture<Response> response) {
         List<Cheat> cheats = new ArrayList<>();
-        if (currentProcess != null) {
-            if (currentProcess.cheatList != null) {
-                for (Cheat c : currentProcess.cheatList) {
+        if (Process.getInstance() != null) {
+            if (Process.getInstance().cheatList != null) {
+                for (Cheat c : Process.getInstance().cheatList) {
                     c.updateData();
                     cheats.add(c);
                 }
             }
-            if (currentProcess.scriptList != null) {
-                for (Script script : currentProcess.scriptList) {
+            if (Process.getInstance().scriptList != null) {
+                for (Script script : Process.getInstance().scriptList) {
                     for (Cheat c : script.getAllCheats()) {
                         c.updateData();
                         cheats.add(c);
@@ -110,7 +128,7 @@ public class CheatThread implements Runnable {
 
                 }
             }
-            response.complete(new response.CheatStatus(cheats, currentProcess.getData().getSystem(), currentProcess.getGameName(), currentProcess.getData().getCht()));
+            response.complete(new response.CheatStatus(cheats, Process.getInstance().getData().getSystem(), Process.getInstance().getGameName(), Process.getInstance().getData().getCht()));
         }
         else {
             response.complete(new response.CheatStatus(null, "", "", ""));
@@ -139,10 +157,7 @@ public class CheatThread implements Runnable {
     }
 
     private void exitCheat(CompletableFuture<Response> response) {
-        if (currentProcess != null) {
-            currentProcess.exit();
-            currentProcess = null;
-        }
+        Optional.ofNullable(Process.getInstance()).ifPresent(Process::exit);
         if (response != null)
             response.complete(new Success());
     }
@@ -150,13 +165,12 @@ public class CheatThread implements Runnable {
     private void startCheat(RunnableCheat data, CompletableFuture<Response> response) {
         try {
             if (checkRunning(data)) {
-                log.info("Cheat is already running.  No need to rerun");
+                log.debug("Cheat is already running.  No need to rerun");
                 response.complete(new Success());
                 return;
             }
             exitCheat(null);
-            currentProcess = new Process(data, messageQueue);
-            currentProcess.start();
+            Process.create(data, messageQueue).start();
         } catch (Exception e) {
             response.complete(new Failure(e.getMessage()));
             return;
@@ -165,8 +179,6 @@ public class CheatThread implements Runnable {
     }
 
     private boolean checkRunning(RunnableCheat data) {
-        if (currentProcess == null)
-            return false;
-        return currentProcess.getData().equals(data);
+        return Optional.ofNullable(Process.getInstance()).map(e->e.getData().equals(data)).orElse(false);
     }
 }

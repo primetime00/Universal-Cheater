@@ -17,10 +17,7 @@ public class CheatApplicationTest {
     private final String cheatname = "cheatTest";
     @Before
     public void setUp() throws Exception {
-        gson = new GsonBuilder()
-                .setPrettyPrinting()
-                .registerTypeAdapter(Value.class, new Value.ValueDeserializer())
-                .create();
+        gson = CheatApplication.getGson();
         app = new CheatApplication();
         Util.createCheats(cheatname);
     }
@@ -29,9 +26,12 @@ public class CheatApplicationTest {
     @Test
     public void testPopulateGames() {
         GameList list = CheatApplication.populateGameList(gson, "Cheat", cheatname);
-        assertEquals(2, list.getGameList().size());
+        assertEquals(4, list.getGameList().size());
         assertEquals("Test Game", list.getGameList().get(0).getGame());
         assertEquals("Test Game (Script)", list.getGameList().get(1).getGame());
+        assertEquals("Unit Script Test Game", list.getGameList().get(2).getGame());
+        assertEquals("Unit Test Game", list.getGameList().get(3).getGame());
+
     }
 
     @Test

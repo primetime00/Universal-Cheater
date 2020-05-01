@@ -7,14 +7,14 @@ import com.google.common.io.Files;
 import com.google.gson.*;
 import games.Game;
 import games.RunnableCheat;
-import io.CheatFile;
-import io.Code;
-import io.OperationProcessor;
+import io.*;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.plugin.json.JavalinJson;
 import message.*;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
 import org.json.simple.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +23,16 @@ import response.GameList;
 import response.Response;
 import script.Value;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class CheatApplication {
     static Logger log = LoggerFactory.getLogger(CheatApplication.class);
@@ -56,10 +60,24 @@ public class CheatApplication {
         app.get("/getCheatStatus", ctx -> getCheatStatus(ctx));
         app.post("/runGameCheat", ctx -> executeGameCheat(ctx));
         app.post("/toggleGameCheat", ctx -> toggleGameCheat(ctx));
+        app.post("/triggerGameCheat", ctx -> triggerGameCheat(ctx));
         app.post("/resetGameCheat", ctx -> resetGameCheat(ctx));
         app.post("/exitCheat", ctx -> exitCheat(ctx));
         createDirectories();
+        try {
+            installKeyHook();
+        } catch (NativeHookException e) {
+            log.error("Cannot register key hooks: {}", e.getMessage());
+            return;
+        }
         new Thread(cheatThread).start();
+    }
+
+    private void installKeyHook() throws NativeHookException {
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName());
+        logger.setLevel(Level.WARNING);
+        logger.setUseParentHandlers(false);
+        GlobalScreen.registerNativeHook();
     }
 
     private void createDirectories() {
@@ -67,9 +85,9 @@ public class CheatApplication {
         res.addDirectory("DosBox");
         res.addFile("DosBox", "Privateer.cht");
         res.addFile("DosBox", "Wolfenstein 3D.cht");
+        res.addFile("DosBox", "Master Of Orion 2.cht");
         res.addFile("DosBox", "Strike Commander.cht");
         res.addFile("DosBox/Strike Commander", "Strike Commander - Ammo.js");
-        res.addFile("DosBox/Strike Commander", "Strike Commander - Inv.js");
         res.process();
     }
 
@@ -92,6 +110,17 @@ public class CheatApplication {
             ctx.json(new Failure("Could not parse message"));
         }
     }
+
+    private void triggerGameCheat(Context ctx) {
+        try {
+            int id = Integer.parseInt(ctx.body()); //should just be a primitive
+            CompletableFuture<Response> response = addMessageWithResponse(new Message(new CheatTrigger(id)));
+            ctx.json(response);
+        } catch (Exception e) {
+            ctx.json(new Failure("Could not parse message"));
+        }
+    }
+
 
     private void resetGameCheat(Context ctx) {
         try {
@@ -132,6 +161,8 @@ public class CheatApplication {
     private void executeGameCheat(Context ctx) {
         try {
             RunnableCheat cht = ctx.bodyAsClass(RunnableCheat.class);
+            if (cht.getDirectory() == null)
+                cht.setDirectory(CheatApplication.cheatDir);
             CompletableFuture<Response> response = addMessageWithResponse(new Message(cht));
             ctx.json(response);
         } catch (Exception e) {
@@ -198,7 +229,9 @@ public class CheatApplication {
                     .setPrettyPrinting()
                     .registerTypeAdapter(Value.class, new Value.ValueDeserializer())
                     .registerTypeAdapter(AOB.class, new AOB.AOBDeserializer())
+                    .registerTypeAdapter(Cheat.class, new Cheat.CheatDeserializer())
                     .registerTypeAdapter(Code.class, new Code.CodeDeserializer())
+                    .registerTypeAdapter(Trigger.class, new Trigger.TriggerDeserializer())
                     .registerTypeAdapter(OperationProcessor.class, new OperationProcessor.AOBDeserializer())
                     .create();
         }

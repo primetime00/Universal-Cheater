@@ -48,6 +48,15 @@ spa.$('cheat', {
             });
     },
 
+    onTrigger: function(value, index) {
+        console.log("trigger", value, index);
+        axios.post('triggerGameCheat', index)
+            .then(function(resp) {
+                console.log('done', resp.data)
+            });
+    },
+
+
     onReset: function(value, index) {
         console.log("reset", value, index);
         axios.post('resetGameCheat', index)

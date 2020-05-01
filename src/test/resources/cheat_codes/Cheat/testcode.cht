@@ -1,32 +1,32 @@
 {
   "game": "Unit Test Game",
-  "regionSize": [67108864, 67112960],
+  "regionSize": [],
   "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "UnitTestApp.exe",
     "partialMatch": true
   },
   "cheats": [
     {
       "name": "Cheat 1",
-      "scan": "46 41 4B 45 00",
+      "scan": "5F 46 41 4B 45 00",
       "codes": [
         {
-          "offset": 7,
-          "value": "9",
+          "offset": 10,
+          "value": "50",
           "operations":
           [
             {
               "type": "filter",
               "data": {
-                "offset": 5,
+                "offset": 16,
                 "expect": "1"
               }
             },
             {
               "type": "detect",
               "data": {
-                "offset": 7,
+                "offset": 10,
                 "max": "7",
                 "min": "3"
               }
@@ -34,27 +34,28 @@
           ]
         },
         {
-          "offset": 11,
-          "value": "999"
+          "offset": 6,
+          "value": "d 999 s 2"
         }
       ]
     },
     {
       "name": "Share Cheat 1",
-      "scan": "46 41 4B 45 00",
+      "scan": "5F 46 41 4B 45 00",
       "codes": [
         {
-          "offset": 7,
+          "offset": 12,
           "value": "9"
         }
       ]
     },
     {
       "name": "Share Cheat 2",
-      "scan": "46 41 4B 45 00",
+      "scan": "5F 46 41 4B 45 00",
+      "script": "inc.js",
       "codes": [
         {
-          "offset": 7,
+          "offset": 13,
           "value": "9"
         }
       ]

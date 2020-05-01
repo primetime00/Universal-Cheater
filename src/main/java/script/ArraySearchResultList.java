@@ -1,7 +1,6 @@
 package script;
 
 import com.google.common.collect.Lists;
-import engine.Process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.FormatTools;
@@ -70,6 +69,15 @@ public class ArraySearchResultList {
         return Lists.newArrayList(results.get(base));
     }
 
+    public List<ArraySearchResult> getAllList() {
+        List<ArraySearchResult> res = new ArrayList<>();
+        results.forEach((key, value) -> res.addAll(getList(key)));
+        return res;
+    }
+
+
+
+
     public List<ArraySearchResult> getValidList(long base) {
         List<ArraySearchResult> res = getList(base);
         return res.stream().filter(e->e.isValid()).collect(Collectors.toList());
@@ -106,7 +114,7 @@ public class ArraySearchResultList {
     }
 
     public int size() {
-        return results.size();
+        return results != null ? results.size() : 0;
     }
 
     public void lock() {

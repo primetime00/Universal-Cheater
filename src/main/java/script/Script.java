@@ -1,6 +1,5 @@
 package script;
 
-import com.sun.jna.Memory;
 import io.Cheat;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
@@ -45,9 +44,12 @@ public class Script {
         Bindings bindings = engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE);
         bindings.put("_script", this);
         engine.eval("var Cheat = Java.type('io.Cheat');");
+        engine.eval("var CheatBuilder = Java.type('io.CheatBuilder');");
         engine.eval("var Code = Java.type('io.Code');");
+        engine.eval("var CodeBuilder = Java.type('io.CodeBuilder');");
         engine.eval("var Filter = Java.type('io.Filter');");
         engine.eval("var Detect = Java.type('io.Detect');");
+        engine.eval("var InvDetect = Java.type('io.InvDetect');");
         engine.eval("var cheatSearch = function(cheat, mem, base) {Java.type('util.SearchTools').search(cheat, mem, base);}");
         engine.eval("var writeCheat = function(cheat) { return Java.type('util.MemoryTools').writeCheat(cheat);}");
         engine.eval("var logMessage = function(msg) {_script.log(msg);}");
@@ -69,42 +71,38 @@ public class Script {
     }
 
 
-    public void search(long pos, Memory mem) throws ScriptException, NoSuchMethodException {
-        ScriptObjectMirror search = (ScriptObjectMirror) engine.getContext().getAttribute("search");
-        if (search != null) {
-            ((Invocable)engine).invokeFunction("search", mem, pos);
-        }
-    }
-
-    public void write() throws ScriptException, NoSuchMethodException {
-        ScriptObjectMirror apply = (ScriptObjectMirror) engine.getContext().getAttribute("write");
-        if (apply != null) {
-            ((Invocable)engine).invokeFunction("write");
-        }
-    }
-
-    public List<Cheat> getCheats() {
-        ScriptObjectMirror cheatList = (ScriptObjectMirror) engine.getContext().getAttribute("getCheats");
-        try {
-            if (cheatList != null) {
-                return (List<Cheat>) ((Invocable) engine).invokeFunction("getCheats");
-            }
-        } catch (Exception e) {
-            ScriptTools.log.error("Could not get script cheats: {}", e.getMessage());
-        }
-        return new ArrayList<>();
-    }
-
     public ScriptEngine getEngine() {
         return engine;
     }
 
+    public void initCheat(Cheat c) throws ScriptException, NoSuchMethodException {
+        ScriptObjectMirror apply = (ScriptObjectMirror) engine.getContext().getAttribute("initializeCheat");
+        if (apply != null && apply.isFunction()) {
+            ((Invocable)engine).invokeFunction("initializeCheat", c);
+        }
+    }
+
     public void searchComplete() throws ScriptException, NoSuchMethodException {
         ScriptObjectMirror apply = (ScriptObjectMirror) engine.getContext().getAttribute("searchComplete");
-        if (apply != null) {
+        if (apply != null && apply.isFunction()) {
             ((Invocable)engine).invokeFunction("searchComplete");
         }
     }
+
+    public void handleScriptCheatSuccess(Cheat cheat, int codesWritten, int totalCodes) throws ScriptException, NoSuchMethodException {
+        ScriptObjectMirror success = (ScriptObjectMirror) getEngine().getContext().getAttribute("cheatSuccess");
+        if (success != null && success.isFunction()) {
+            ((Invocable)getEngine()).invokeFunction("cheatSuccess", cheat, codesWritten, totalCodes);
+        }
+    }
+
+    public void handleScriptCheatFailed(Cheat cheat) throws ScriptException, NoSuchMethodException {
+        ScriptObjectMirror success = (ScriptObjectMirror) getEngine().getContext().getAttribute("cheatFailed");
+        if (success != null && success.isFunction()) {
+            ((Invocable)getEngine()).invokeFunction("cheatFailed", cheat);
+        }
+    }
+
 
     public List<io.Cheat> getAllCheats() {
         List<io.Cheat> cheats = new ArrayList<>();

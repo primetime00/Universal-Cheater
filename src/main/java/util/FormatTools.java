@@ -1,12 +1,9 @@
 package util;
 
 import com.sun.jna.Memory;
-import script.ScriptTools;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FormatTools {
     public static String bytesToString(byte [] bytes) {

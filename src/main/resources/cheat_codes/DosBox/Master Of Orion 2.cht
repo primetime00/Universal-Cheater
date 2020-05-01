@@ -1,0 +1,27 @@
+{
+  "game": "Master Of Orion 2",
+  "regionSize": [16781312],
+  "window": {
+    "windowClass": "SDL_App",
+    "windowTitle": "",
+    "partialMatch": true
+  },
+  "cheats": [
+    {
+      "name": "Unlimited Money",
+      "scan": "FF FF FF FF DB 5A 01 00 00 00 00 00 F4",
+      "codes": [ { "offset": 122, "value": "200000" } ]
+    },
+    {
+      "name": "Instant Research",
+      "scan": "FF FF FF FF DB 5A 01 00 00 00 00 00 F4",
+      "trigger": { "type": "button", "behavior": "onetime" },
+      "codes": [ { "offset": 563, "value": "28000" } ]
+    },
+    {
+      "name": "Unlimited Design Space",
+      "scan": "CC 4F 52 49 4F 4E 31 35 30 0C",
+      "codes": [ { "offset": 270, "value": "b 0CFEFFFF" } ]
+    }
+  ]
+}

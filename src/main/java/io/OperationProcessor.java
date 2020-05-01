@@ -28,6 +28,14 @@ public interface OperationProcessor {
                     Detect d = new Detect();
                     d.readJson(val.get("data").getAsJsonObject(), jsonDeserializationContext);
                     return d;
+                case "invdetect":
+                    InvDetect i = new InvDetect();
+                    i.readJson(val.get("data").getAsJsonObject(), jsonDeserializationContext);
+                    return i;
+                case "instance":
+                    Instance ins = new Instance();
+                    ins.readJson(val.get("data").getAsJsonObject(), jsonDeserializationContext);
+                    return ins;
                 default:
                     return null;
             }
