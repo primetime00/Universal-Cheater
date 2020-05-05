@@ -1,0 +1,20 @@
+<div>
+    <div ng-if="starting">
+        <ons-progress-circular indeterminate></ons-progress-circular><i>Searching for game...</i>
+    </div>
+    <ons-list ng-if="!starting">
+        <ons-list-item ng-repeat="cheat in cheats" modifier="longdivider" >
+            <div class="left" style="margin-right:15px; min-width:86px;">
+                <ons-button modifier="material" style="font-size:12px;" ng-if="hasButtonTrigger(cheat)" ng-disabled="!cheat.hasCheats" ng-click="triggerCheat(cheat)">{{getTriggerName(cheat)}}</ons-button>
+            </div>
+            <div class="center">
+                <div style="font-size:14px;" ng-style="getItemColor(cheat)">{{cheat.name}}</div>
+            </div>
+            <div class="right">
+                <ons-switch ng-model="cheat.enabled" ng-change="toggleCheat(cheat)"></ons-switch>
+                <ons-button modifier="material--flat" ng-click="resetCheat(cheat)">Reset</ons-button>
+
+            </div>
+        </ons-list-item>
+    </ons-list>
+</div>

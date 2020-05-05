@@ -1,70 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="uCheatApp">
 <head>
+    <base href="/index.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-route.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+    <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+    <script src="https://unpkg.com/angularjs-onsenui/dist/angularjs-onsenui.min.js"></script>
+    <script src="app.js"></script>
+    <script src="appService.js"></script>
+    <script src="app/main/mainCtrl.js"></script>
+    <script src="app/system/systemCtrl.js"></script>
+    <script src="app/games/gamesCtrl.js"></script>
+    <script src="app/cheats/cheatsCtrl.js"></script>
+    <script>
+    ons.platform.select('android');
+</script>
+
+
     <title>MyApp</title>
 </head>
 <body>
 <ons-page id="helloworld-page">
-    <spa-component class="container" src="header"></spa-component>
+    <ons-toolbar ng-controller="headerCtrl">
+        <div class="left">
+            <ons-toolbar-button icon="md-arrow-back" id="back_arrow" ng-click="backClick()" ng-show="state != 0"></ons-toolbar-button>
+        </div>
+        <div class="center">{{title}}</div>
+    </ons-toolbar>
 
-    <spa-component src="main"></spa-component>
-</ons-page>
-
-<!--
-<ons-page id="helloworld-page">
-    <div>
-    <spa-component src="header"></spa-component>
+    <div ng-view>
     </div>
-    <spa-component src="main"></spa-component>
 </ons-page>
--->
 
-<script src="//cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"          ></script>
-<script src="//cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"  ></script>
-<script src="//cdn.jsdelivr.net/gh/sucom/SPA.js@latest/dist/spa-bundle.min.js" ></script>
-<script src="//cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
-<link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
-<script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
-<script>
-    Handlebars.registerHelper('json', function(context) {
-        return JSON.stringify(context);
-    });
-    Handlebars.registerHelper('checked', function(currentValue) {
-        return currentValue == true ? 'checked' : '';
-    });
-    Handlebars.registerHelper('triggerButton', function(trigger) {
-        if (trigger == undefined) return false;
-        if (!('type' in trigger))
-            return false;
-        return trigger['type'] == 'button';
-    });
-    Handlebars.registerHelper('triggerName', function(trigger) {
-        if (!('behavior' in trigger))
-            return "";
-        var tb = trigger['behavior'];
-        if (tb == 'toggle') return 'Toggle';
-        else if (tb == 'onetime') return 'Trigger';
-        else return 'Hold';
-    });
-    Handlebars.registerHelper('disabled', function(cheatsAvailable) {
-        if (cheatsAvailable == undefined) return "disabled";
-        if (!cheatsAvailable) return "disabled";
-        return "";
-    });
-    Handlebars.registerHelper('cheatTextColor', function(cheat) {
-        console.log(cheat.hasCheats);
-        if (!cheat.hasCheats) return 'lightgray';
-        if ('trigger' in cheat && 'on' in cheat['trigger'] && cheat['trigger']['on']) return 'green';
-        if ('trigger' in cheat && 'on' in cheat['trigger'] && !cheat['trigger']['on']) return 'red';
-        if (!('trigger' in cheat)) return 'black';
-        return 'yellow';
-    });
-
-
-
-    ons.platform.select('android');
-</script>
 </body>
 </html>

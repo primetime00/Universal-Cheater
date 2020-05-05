@@ -2,8 +2,8 @@
   "game": "Wolfenstein 3D",
   "regionSize": [16781312, 33558528],
   "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "DOSBox",
     "partialMatch": true
   },
   "cheats": [

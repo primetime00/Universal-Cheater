@@ -2,8 +2,8 @@
   "game": "Master Of Orion 2",
   "regionSize": [16781312],
   "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "DOSBox",
     "partialMatch": true
   },
   "cheats": [

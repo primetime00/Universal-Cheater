@@ -41,11 +41,13 @@ public class CheatApplication {
     private static Gson gson;
     final private CheatThread cheatThread;
     private Javalin app;
+    private ApplicationState currentState;
 
     public CheatApplication() {
         messageQueue = new ArrayBlockingQueue<>(10);
         JavalinJson.setToJsonMapper(getGson()::toJson);
         JavalinJson.setFromJsonMapper(getGson()::fromJson);
+        currentState = new ApplicationState();
         cheatThread = new CheatThread(messageQueue);
     }
 
@@ -58,6 +60,9 @@ public class CheatApplication {
         app.get("/getSystems", ctx -> populateSystems(ctx));
         app.get("/getGameCheats/:system", ctx -> populateGames(ctx, ctx.pathParam("system")));
         app.get("/getCheatStatus", ctx -> getCheatStatus(ctx));
+        app.get("/getAppStatus", ctx -> getAppStatus(ctx));
+        app.error(404, ctx -> {log.error("ERROR!"); ctx.render("web/index.html");});
+        app.post("/setAppState", ctx -> setAppState(ctx));
         app.post("/runGameCheat", ctx -> executeGameCheat(ctx));
         app.post("/toggleGameCheat", ctx -> toggleGameCheat(ctx));
         app.post("/triggerGameCheat", ctx -> triggerGameCheat(ctx));
@@ -73,7 +78,19 @@ public class CheatApplication {
         new Thread(cheatThread).start();
     }
 
+    private void setAppState(Context ctx) {
+        int st = Integer.parseInt(ctx.body());
+        currentState.setState(st);
+    }
+
+    private void getAppStatus(Context ctx) {
+        CompletableFuture<Response> response = addMessageWithResponse(new Message(new CheatStatus()));
+        ctx.json(response);
+    }
+
     private void installKeyHook() throws NativeHookException {
+        if (Process.debugMode)
+            return;
         java.util.logging.Logger logger = java.util.logging.Logger.getLogger(GlobalScreen.class.getPackage().getName());
         logger.setLevel(Level.WARNING);
         logger.setUseParentHandlers(false);
@@ -87,7 +104,7 @@ public class CheatApplication {
         res.addFile("DosBox", "Wolfenstein 3D.cht");
         res.addFile("DosBox", "Master Of Orion 2.cht");
         res.addFile("DosBox", "Strike Commander.cht");
-        res.addFile("DosBox/Strike Commander", "Strike Commander - Ammo.js");
+        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - Ammo.js");
         res.process();
     }
 

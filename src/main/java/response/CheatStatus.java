@@ -1,6 +1,7 @@
 package response;
 
 
+import games.Game;
 import io.Cheat;
 
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ public class CheatStatus extends Response {
     private int state;
     private String system;
     private String cht;
-    private String game;
+    private Game game;
     private int hash;
 
     public CheatStatus() {
@@ -21,11 +22,15 @@ public class CheatStatus extends Response {
         this.state = 0;
         this.system = "";
         this.cht = "";
-        this.game = "";
+        this.game = new Game("", "" ,"");
         this.hash = hashCode();
     }
 
-    public CheatStatus(List<Cheat> list, String system, String game, String cht) {
+    public CheatStatus(String failure) {
+        super("FAIL", failure);
+    }
+
+    public CheatStatus(List<Cheat> list, String system, Game game, String cht) {
         super(Response.STATUS_SUCCESS);
         if (list == null) {
             this.cheatList = new ArrayList<>();

@@ -5,6 +5,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
+import games.Game;
 import games.RunnableCheat;
 import io.Cheat;
 import io.CheatFile;
@@ -87,7 +88,12 @@ public class Process {
             log.warn("You are opening a new process without closing the old");
             instance.exit();
         }
-        instance = new Process(data, messageQueue);
+        try {
+            instance = new Process(data, messageQueue);
+        } catch (Exception e) {
+            instance = null;
+            throw e;
+        }
         return instance;
     }
 
@@ -138,7 +144,7 @@ public class Process {
         }
 
         if (selectedHWND == null) {
-            throw new Exception("Could not find window!");
+            throw new Exception("Could not find process!");
         }
         IntByReference ref = new IntByReference();
         User32.INSTANCE.GetWindowThreadProcessId(selectedHWND, ref);
@@ -177,6 +183,7 @@ public class Process {
             keyHandler = null;
         }
         ScanMap.reset();
+        log.info("DESTROY INSTANCE");
         instance = null;
     }
 
@@ -387,6 +394,11 @@ public class Process {
     public RunnableCheat getData() {
         return data;
     }
+
+    public Game getGame() {
+        return new Game(data.getSystem(), gameName, data.getCht());
+    }
+
 
     public String getGameName() {
         return gameName;

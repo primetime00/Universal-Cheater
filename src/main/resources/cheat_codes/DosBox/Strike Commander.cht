@@ -2,8 +2,8 @@
   "game": "Strike Commander",
   "regionSize": [16781312],
   "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "DOSBox",
     "partialMatch": true
   },
   "cheats": [
@@ -15,31 +15,9 @@
     {
       "name": "Unlimited Fuel (Apply brake or flaps once)",
       "identity": 1,
-      "scan": "01 00 00 00 01 00 00 00 5A 0C 00 ?? ?? ?? 00 00 0E",
-      "codes": [{"offset":  12, "value": "9999",
-        "operations": [ { "type": "detect", "data": { "offset": 19, "max": "3", "min": "1", "size": 1 } } ] } ]
-    },
-    {
-      "name": "Turbo Boost - Hold (Q)",
-      "scan": "01 00 00 00 01 00 00 00 5A 0C 00 ?? ?? ?? 00 00 0E",
-      "trigger": {
-        "type": "keypress",
-        "key": 81,
-        "behavior": "hold"
-      },
-      "codes": [{"offset":  56, "value": "130000",
-        "operations": [ { "type": "instance", "data": { "identity":  1 } } ] } ]
-    },
-    {
-      "name": "Instant Slow Down - Hold (P)",
-      "scan": "01 00 00 00 01 00 00 00 5A 0C 00 ?? ?? ?? 00 00 0E",
-      "trigger": {
-        "type": "keypress",
-        "key": 80,
-        "behavior": "hold"
-      },
-      "codes": [{"offset":  56, "value": "d 4000 s 2",
-        "operations": [ { "type": "instance", "data": { "identity":  1 } } ] } ]
+      "scan": "14 28 05 00 32 00 00 0C 00 00 00 99 04 00 00 1E",
+      "codes": [{"offset":  24, "value": "9999",
+        "operations": [ { "type": "detect", "data": { "offset": 31, "max": "3", "min": "1", "size": 1 } } ] } ]
     }
   ],
   "scripts": [

@@ -1,5 +1,6 @@
 package engine;
 
+import games.Game;
 import games.RunnableCheat;
 import io.Cheat;
 import message.*;
@@ -40,6 +41,9 @@ public class CheatThread implements Runnable {
                 }
                 else if (msg.getData() instanceof CheatStatus) {
                     getCheatStatus(msg.getResponse());
+                }
+                else if (msg.getData() instanceof AppStatus) {
+                    getAppStatus(msg.getResponse());
                 }
                 else if (msg.getData() instanceof CheatToggle) {
                     toggleCheat(((CheatToggle)msg.getData()).getId(),  msg.getResponse());
@@ -109,6 +113,12 @@ public class CheatThread implements Runnable {
         }
     }
 
+    private void getAppStatus(CompletableFuture<Response> response) {
+        if (Process.getInstance() == null) {
+
+        }
+    }
+
 
     private void getCheatStatus(CompletableFuture<Response> response) {
         List<Cheat> cheats = new ArrayList<>();
@@ -128,10 +138,10 @@ public class CheatThread implements Runnable {
 
                 }
             }
-            response.complete(new response.CheatStatus(cheats, Process.getInstance().getData().getSystem(), Process.getInstance().getGameName(), Process.getInstance().getData().getCht()));
+            response.complete(new response.CheatStatus(cheats, Process.getInstance().getData().getSystem(), Process.getInstance().getGame(), Process.getInstance().getData().getCht()));
         }
         else {
-            response.complete(new response.CheatStatus(null, "", "", ""));
+            response.complete(new response.CheatStatus("Application has exited..."));
         }
         /*
         List<Cheat> cheats = new ArrayList<>();

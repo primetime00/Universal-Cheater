@@ -2,8 +2,8 @@
   "game": "Wing Commander Privateer",
   "regionSize": [16781312, 33558528],
   "window": {
-    "windowClass": "SDL_app",
-    "windowTitle": "",
+    "windowClass": "",
+    "windowTitle": "DOSBox",
     "partialMatch": true
   },
   "cheats": [

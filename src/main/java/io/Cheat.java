@@ -82,7 +82,7 @@ public class Cheat {
         return Objects.hash(name, scan, codes);
     }
 
-    public int webHashCode() { return Objects.hash(name, scan, codes, hasCheats, trigger); }
+    public int webHashCode() { return Objects.hash(name, scan, codes, hasCheats, trigger, enabled); }
 
     public void updateData() {
         id = Objects.hash(name, scan);
@@ -221,7 +221,7 @@ public class Cheat {
             log.error("Cheat {} does not have a trigger", name);
             return;
         }
-        log.info("Cheat {} is triggering", name);
+        log.debug("Cheat {} is triggering", name);
         trigger.handle(info);
         if (scriptHandler != null) {
             scriptHandler.handle(ScriptHandler.HANDLE_TYPE.ON_TRIGGER, info);
