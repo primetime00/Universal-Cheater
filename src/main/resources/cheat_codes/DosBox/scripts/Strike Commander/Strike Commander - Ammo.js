@@ -1,9 +1,11 @@
 (function(context) {
-    context.ammoCheat = new Cheat("Unlimited Aircraft Ammo And Countermeasures (fire 20MM once)", "32 30 4D 4D 00 00 00 00 00",
-        new Code(-7, "1000",
-            new Filter(-12, "8"),
-            new Filter(-7, "1", "1000"),
-            new Detect(-7, "3", "100", 2)));
+    context.ammoCheat = new CheatBuilder("Unlimited Aircraft Ammo And Countermeasures (fire 20MM once)", "32 30 4D 4D 00 00 00 00 00")
+                    .addCode(new CodeBuilder(-7, "1000")
+                        .addOperation(new Filter(-12, "8"))
+                        .addOperation(new Filter(-7, "1", "1000"))
+                        .addOperation(new Detect(-7, "3", "100", 2))
+                        .build())
+                    .build();
 
     context.initialize = function() {
         context.missilesCodesEnabled = false;
