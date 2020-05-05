@@ -42,9 +42,6 @@ public class CheatThread implements Runnable {
                 else if (msg.getData() instanceof CheatStatus) {
                     getCheatStatus(msg.getResponse());
                 }
-                else if (msg.getData() instanceof AppStatus) {
-                    getAppStatus(msg.getResponse());
-                }
                 else if (msg.getData() instanceof CheatToggle) {
                     toggleCheat(((CheatToggle)msg.getData()).getId(),  msg.getResponse());
                 }

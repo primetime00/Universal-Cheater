@@ -23,10 +23,14 @@ import response.GameList;
 import response.Response;
 import script.Value;
 
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,13 +45,13 @@ public class CheatApplication {
     private static Gson gson;
     final private CheatThread cheatThread;
     private Javalin app;
-    private ApplicationState currentState;
+    private Thread tThread;
+    static private final int port = 7000;
 
     public CheatApplication() {
         messageQueue = new ArrayBlockingQueue<>(10);
         JavalinJson.setToJsonMapper(getGson()::toJson);
         JavalinJson.setFromJsonMapper(getGson()::fromJson);
-        currentState = new ApplicationState();
         cheatThread = new CheatThread(messageQueue);
     }
 
@@ -55,32 +59,75 @@ public class CheatApplication {
         app = Javalin.create(config -> config
                 .enableWebjars()
                 .addStaticFiles("/web", Location.CLASSPATH)
-        ).start(7000);
+        ).start(port);
         app.get("/", ctx -> ctx.render("web/index.html"));
         app.get("/getSystems", ctx -> populateSystems(ctx));
         app.get("/getGameCheats/:system", ctx -> populateGames(ctx, ctx.pathParam("system")));
         app.get("/getCheatStatus", ctx -> getCheatStatus(ctx));
         app.get("/getAppStatus", ctx -> getAppStatus(ctx));
         app.error(404, ctx -> {log.error("ERROR!"); ctx.render("web/index.html");});
-        app.post("/setAppState", ctx -> setAppState(ctx));
         app.post("/runGameCheat", ctx -> executeGameCheat(ctx));
         app.post("/toggleGameCheat", ctx -> toggleGameCheat(ctx));
         app.post("/triggerGameCheat", ctx -> triggerGameCheat(ctx));
         app.post("/resetGameCheat", ctx -> resetGameCheat(ctx));
         app.post("/exitCheat", ctx -> exitCheat(ctx));
         createDirectories();
+        installTray();
         try {
             installKeyHook();
         } catch (NativeHookException e) {
             log.error("Cannot register key hooks: {}", e.getMessage());
             return;
         }
-        new Thread(cheatThread).start();
+        tThread = new Thread(cheatThread);
+        tThread.start();
     }
 
-    private void setAppState(Context ctx) {
-        int st = Integer.parseInt(ctx.body());
-        currentState.setState(st);
+    private void installTray() {
+        if (SystemTray.isSupported()) {
+            SystemTray tray = SystemTray.getSystemTray();
+            URL url = this.getClass().getResource("/image/ghost.png");
+            Image image = Toolkit.getDefaultToolkit().getImage(url);
+            ActionListener listener = new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            Desktop.getDesktop().browse(new URI(String.format("http://localhost:%d", port)));
+                        } catch (Exception e) {
+                            log.error("Could not open browser: {}", e.getMessage());
+                        }
+                    }
+                }
+            };
+            PopupMenu popup = new PopupMenu();
+            MenuItem defaultItem = new MenuItem("Exit");
+            final TrayIcon trayIcon = new TrayIcon(image, "Universal Cheater", popup);
+            defaultItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    ExitMessage msg = new ExitMessage();
+                    addMessage(new Message(msg));
+                    try {
+                        tThread.join();
+                    } catch (InterruptedException e) {
+                        log.error("Cannot exit Universal Cheater");
+                    }
+                    app.stop();
+                    tray.remove(trayIcon);
+                    System.exit(0);
+
+                }
+            });
+            popup.add(defaultItem);
+            trayIcon.setImageAutoSize(true);
+            trayIcon.addActionListener(listener);
+            try {
+                tray.add(trayIcon);
+            } catch (AWTException e) {
+                log.error(e.getMessage());
+            }
+        }
     }
 
     private void getAppStatus(Context ctx) {
@@ -171,6 +218,7 @@ public class CheatApplication {
     }
 
     public static void main(String[] args) {
+        //Process.debugMode = true;
         CheatApplication cheatApplication = new CheatApplication();
         cheatApplication.start();
     }
