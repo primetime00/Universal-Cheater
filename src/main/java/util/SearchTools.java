@@ -12,10 +12,15 @@ import java.util.List;
 
 public class SearchTools {
     public static Logger log = LoggerFactory.getLogger(SearchTools.class);
-    static public List<ArraySearchResult> aobSearch(AOB aob, long base, Memory mem) {
-        long index = 0;
+    static public List<ArraySearchResult> aobSearch(AOB aob, long base, Memory mem, long size) {
+        return aobSearch(aob, base, 0, size, mem);
+    }
+
+    static public List<ArraySearchResult> aobSearch(AOB aob, long base, int offsetStart, long size, Memory mem) {
+        long index = offsetStart;
         List<ArraySearchResult> results = new ArrayList<>();
-        while (index+aob.size() < mem.size()) {
+        long end = Math.min(offsetStart+size, size);
+        while (index+aob.size() < end) {
             if ((mem.getByte(aob.getStartIndex()+index) & 0xFF) == aob.aobAtStart() &&
                     (mem.getByte(aob.getEndIndex()+index) & 0xFF) == aob.aobAtEnd()) {
 
@@ -39,21 +44,19 @@ public class SearchTools {
         return results;
     }
 
-    static public List<ArraySearchResult> aobSearch(Cheat cheat, long base, Memory mem) {
-        return aobSearch(cheat.getScan(), base, mem);
+
+    static public List<ArraySearchResult> aobSearch(Cheat cheat, long base, Memory mem, long size) {
+        return aobSearch(cheat.getScan(), base, mem, size);
     }
 
-    static public void search(Cheat cheat, Memory mem, long base) {
-        if (cheat.operationsComplete() && cheat.getResults().getValidList(base).size() > 0)
-            return;
-        cheat.getResults().addAll(aobSearch(cheat.getScan(), base, mem), base);
-        if (cheat.hasOperations()) {
-            cheat.getCodes().forEach(code -> {
-                if (!code.operationsComplete()) {
-                    code.processOperations(cheat.getResults(), base, mem);
-                }
-            });
-        }
+    static public List<ArraySearchResult> search(Memory memory, long size, long base, String byteString) {
+        AOB aob = AOBTools.createAOB(byteString);
+        return aobSearch(aob, base, memory, size);
+    }
+
+    static public List<ArraySearchResult> search(Memory memory, long base, int offsetStart, int size, String byteString) {
+        AOB aob = AOBTools.createAOB(byteString);
+        return aobSearch(aob, base, offsetStart, size, memory);
     }
 
 

@@ -1,8 +1,10 @@
 angular.module('uCheatApp').service('appCom', ["$rootScope", function($rootScope) {
+    var self = this;
     this.title = "";
     this.system = "";
     this.game = {}
     this.titleChangeHandlers = new Set();
+    this.toastMap = {};
 
     ons.ready(function() {
         ons.setDefaultDeviceBackButtonListener(function() {
@@ -123,6 +125,32 @@ angular.module('uCheatApp').service('appCom', ["$rootScope", function($rootScope
 
     this.getGame = function() {
         return this.game;
+    }
+
+    this.stringHash = function(message) {
+        var hash = 0, i, chr;
+        for (i = 0; i < message.length; i++) {
+          chr   = message.charCodeAt(i);
+          hash  = ((hash << 5) - hash) + chr;
+          hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    }
+
+
+    this.toast = function(message) {
+        var hash = this.stringHash(message);
+        if (!(hash in this.toastMap)) {
+            this.toastMap[hash] = false;
+        }
+        if (!this.toastMap[hash]) {
+            this.toastMap[hash] = true;
+            ons.notification.toast({'message': message, 'timeout':2000, 'callback': function(e) {
+                if (e == -1) {
+                    self.toastMap[hash] = false;
+                }
+            }});
+        }
     }
 
 }]);

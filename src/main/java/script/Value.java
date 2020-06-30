@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.ParseException;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Value implements Serializable {
     public static Logger log = LoggerFactory.getLogger(Value.class);
@@ -282,6 +283,19 @@ public class Value implements Serializable {
     @Override
     public String toString() {
         return originalValue;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Value value = (Value) o;
+        return Objects.equals(originalValue, value.originalValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(originalValue);
     }
 
     static public class ValueDeserializer implements JsonDeserializer<Value> {

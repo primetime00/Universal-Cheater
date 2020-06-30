@@ -1,0 +1,24 @@
+{
+  "game": "Command & Conquer - Red Alert",
+  "regionSize": [16781312],
+  "window": {
+    "windowClass": "",
+    "windowTitle": "DOSBox",
+    "partialMatch": true
+  },
+  "cheats": [
+	{
+      "name": "Unlimited Credits",
+      "scan": "01 00 00 00 00 43 6F 6D 70 75 74 65 72 00 00 00 00 0B 01 00 00 00 01 00 00 00 01 00 01 00 01 00 01 00 01",
+      "codes": [ { "offset": 424, "value": "d 50000 s 2" } ]
+    },
+	{
+      "name": "Quick Build",
+      "scan": "FF FF FF FF ?? ?? 7E 10",
+      "codes": [ { "offset": -38, "value": "d 54 s 1", "operations": [ { "type": "detect", "data": { "offset": -38, "max": "54", "min": "0" } } ] } ]
+    }	
+  ],
+  "scripts": [
+	"Command & Conquer - Red Alert/Command & Conquer - Red Alert.js"
+  ]
+}

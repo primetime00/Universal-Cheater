@@ -7,17 +7,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
 import script.Script;
+import script.ScriptHandler;
 import util.FormatTools;
 import util.SearchTools;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
-public class ScanMap extends HashMap<AOB, Set<Cheat>> {
+public class ScanMap {
     static Logger log = LoggerFactory.getLogger(ScanMap.class);
     private static ScanMap instance;
     private int cheatListHash = -1;
     private int scriptHash = -1;
     private List<Runnable> updateHandlers = new ArrayList<>();
+    private SearchResults searchResults = new SearchResults();
+    private Map<AOB, Set<Cheat>> scanMapData;
+
+    public ScanMap() {
+        scanMapData = new HashMap<>();
+    }
 
     static public ScanMap get() {
         if (instance == null)
@@ -27,8 +35,8 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
 
     static public void reset() {
         if (instance != null) {
-            instance.clear();
             instance = null;
+            get();
         }
     }
 
@@ -44,11 +52,11 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
                 cheatListHash = newCLHash;
                 for (Cheat c : cheatList) {
                     Set<Cheat> cheatSet;
-                    if (!containsKey(c.getScan())) {
+                    if (!scanMapData.containsKey(c.getScan())) {
                         cheatSet = new HashSet<>();
-                        put(c.getScan(), cheatSet);
+                        scanMapData.put(c.getScan(), cheatSet);
                     }
-                    cheatSet = get(c.getScan());
+                    cheatSet = scanMapData.get(c.getScan());
                     cheatSet.add(c);
                 }
             }
@@ -59,11 +67,11 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
                 scriptHash = newSHash;
                 for (Cheat c : scriptCheats) {
                     Set<Cheat> cheatSet;
-                    if (!containsKey(c.getScan())) {
+                    if (!scanMapData.containsKey(c.getScan())) {
                         cheatSet = new HashSet<>();
-                        put(c.getScan(), cheatSet);
+                        scanMapData.put(c.getScan(), cheatSet);
                     }
-                    cheatSet = get(c.getScan());
+                    cheatSet = scanMapData.get(c.getScan());
                     cheatSet.add(c);
                 }
             }
@@ -85,51 +93,74 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
     }
 
 
-    public void search(long pos, Memory mem) {
-        forEach((key, cheats) -> {
-            if (cheats.stream().noneMatch(cheat -> cheat.getResults().getValidList(pos).size() == 0 || !cheat.operationsComplete())) { //we'll do not need to scan this set
-                return;
-            }
+    public void search(long pos, Memory mem, long size) {
+        //searchResults.clear(pos);
+        for (Map.Entry<AOB, Set<Cheat>> entry : scanMapData.entrySet()) {
+            Set<Cheat> cheats = entry.getValue();
+            AOB key = entry.getKey();
+            //do we need to search for this AOB?
+            if (cheats.stream().allMatch(e -> !e.isMultiMatch() && e.getResults().size() > 0))
+                continue;
+            if (cheats.stream().allMatch(e -> e.isStopSearchOnResult() && e.getResults().size() > 0))
+                continue;
+            if (cheats.stream().noneMatch(Cheat::parentProcessingComplete))
+                continue;
+
             //scan one time for this entire set;
             log.debug("Scanning for {}", cheats.iterator().next().getName());
-            List<ArraySearchResult> results = SearchTools.aobSearch(key, pos, mem);
-            cheats.forEach(cheat -> cheat.getResults().addAll(results, pos));
-        });
-
-        processOperations(pos, mem);
-
-    }
-
-    private void processOperations(long pos, Memory mem) {
-        values().forEach(cheatSet ->
-                cheatSet.forEach(cheat -> {
-                    if (cheat.hasOperations() && !cheat.operationsComplete()) {
-                        cheat.getCodes().forEach(e -> e.processOperations(cheat.getResults(), pos, mem));
+            List<ArraySearchResult> results = SearchTools.aobSearch(key, pos, mem, size);
+            if (results.size() > 0) {
+                for (Cheat cheat : cheats) {
+                    if (!cheat.parentProcessingComplete())
+                        continue;
+                    if (cheat.isStopSearchOnResult() && cheat.getResults().size() > 0)
+                        continue;
+                    searchResults.addResults(pos, cheat, results);
+                    if (cheat.getScriptHandler() != null) {
+                        List<ArraySearchResult> res = searchResults.getResults(cheat);
+                        cheat.getScriptHandler().handle(ScriptHandler.HANDLE_TYPE.ON_RESULTS, res, pos, mem);
                     }
-                }));
+                }
+            }
+        }
+        searchResults.processOperations(pos, mem);
+
+
     }
+
 
     public void write(List<Cheat> cheatList, List<Script> scriptList) {
+        List<Cheat> staticCheats = new ArrayList<>();
+        Map<Script, List<Cheat>> scriptCheats = new HashMap<>();
         if (cheatList != null) {
             for (Cheat cheat : cheatList) {
-                if (!cheat.hasWritableCode())
+                if (!cheat.isEnabled())
                     continue;
                 if (!cheat.verify())
                     continue;
+                if (cheat.getResults().size() == 0)
+                    continue;
+                if (cheat.hasMonitors())
+                    cheat.processMonitors();
                 if (!cheat.isTriggered())
                     continue;
-                if (cheat.getResults().getAllValidList().size() > 1) {
-                    log.info("---CHEAT {} has more than one result!", cheat.getName());
-                    cheat.getResults().getAllValidList().forEach(r -> log.info("Address: {}", FormatTools.valueToHex(r.getAddress())));
+                if (cheat.isResetQueued()) {
+                    cheat.reset();
+                    continue;
                 }
-                cheat.writeCodes();
+                staticCheats.add(cheat);
             }
         }
         if (scriptList != null) {
             for (Script script: scriptList) {
                 for (Cheat cheat : script.getAllCheats()) {
-                    if (!cheat.hasWritableCode())
+                    if (!cheat.isEnabled())
                         continue;
+                    if (cheat.getCodes().size() == 0) {
+                        if (cheat.isResetQueued())
+                            cheat.reset();
+                        continue;
+                    }
                     if (!cheat.verify()) {
                         try {
                             script.handleScriptCheatFailed(cheat);
@@ -138,15 +169,37 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
                         }
                         continue;
                     }
+                    if (cheat.getResults().size() == 0)
+                        continue;
+                    if (cheat.hasMonitors())
+                        cheat.processMonitors();
                     if (!cheat.isTriggered())
                         continue;
-                    int codesWritten = cheat.writeCodes();
-                    if (codesWritten > 0) {
-                        try {
-                            script.handleScriptCheatSuccess(cheat, codesWritten, cheat.getCodes().size());
-                        } catch (Exception e) {
-                            log.warn("Failed to handle successful cheat {}: {}", cheat.getName(), e.getMessage());
-                        }
+                    if (cheat.isResetQueued()) {
+                        cheat.reset();
+                        continue;
+                    }
+                    if (!scriptCheats.containsKey(script))
+                        scriptCheats.put(script, new ArrayList<>());
+                    scriptCheats.get(script).add(cheat);
+                }
+            }
+        }
+        for (Cheat c : staticCheats) {
+            c.writeCodes();
+            if (c.isResetOnWrite())
+                c.reset();
+        }
+        for (Map.Entry<Script, List<Cheat>> s: scriptCheats.entrySet()) {
+            for (Cheat c : s.getValue()) {
+                int codesWritten = c.writeCodes();
+                if (c.isResetOnWrite())
+                    c.reset();
+                if (codesWritten > 0) {
+                    try {
+                        s.getKey().handleScriptCheatSuccess(c, codesWritten, c.getCodes().size());
+                    } catch (Exception e) {
+                        log.warn("Failed to handle successful cheat {}: {}", c.getName(), e.getMessage());
                     }
                 }
             }
@@ -155,11 +208,40 @@ public class ScanMap extends HashMap<AOB, Set<Cheat>> {
 
     public List<Cheat> getEveryCheat() {
         List<Cheat> cheats = new ArrayList<>();
-        values().forEach(cheatSet -> cheatSet.forEach(cheats::add));
+        scanMapData.values().forEach(cheatSet -> cheatSet.forEach(cheats::add));
         return cheats;
     }
 
     public void addUpdateHandler(Runnable run) {
         updateHandlers.add(run);
+    }
+
+    public List<ArraySearchResult> getAllSearchResults() {
+        return searchResults.getAllResults();
+    }
+
+    public List<ArraySearchResult> getAllSearchResults(Cheat cht) {
+        return searchResults.getResults(cht);
+    }
+
+    public void writeResults() {
+        for (Cheat c : getEveryCheat()) {
+            if (!c.parentProcessingComplete())
+                continue;
+            if (!c.isMultiMatch() && c.getResults().size() > 0)
+                continue;
+            if (c.operationsComplete()) {
+                List<ArraySearchResult> validResults = getAllSearchResults(c).stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
+                //do we add results, overwrite, etc?
+                try {
+                    c.lock();
+                    c.addResults(validResults);
+                    searchResults.clearResults(c);
+                    c.queueOperationReset();
+                } finally {
+                    c.unlock();
+                }
+            }
+        }
     }
 }

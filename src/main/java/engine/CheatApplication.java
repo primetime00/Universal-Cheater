@@ -151,7 +151,17 @@ public class CheatApplication {
         res.addFile("DosBox", "Wolfenstein 3D.cht");
         res.addFile("DosBox", "Master Of Orion 2.cht");
         res.addFile("DosBox", "Strike Commander.cht");
-        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - Ammo.js");
+        res.addFile("DosBox", "Command & Conquer - Red Alert.cht");
+        res.addFile("DosBox", "Lands Of Lore.cht");
+        res.addFile("DosBox", "X-Wing.cht");
+        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - Player Codes.js");
+        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - CPU Codes.js");
+        res.addFile("DosBox/scripts/Command & Conquer - Red Alert", "Command & Conquer - Red Alert.js");
+        res.addFile("DosBox/scripts/Lands Of Lore", "Lands Of Lore.js");
+        res.addFile("DosBox/scripts/X-Wing", "X-Wing.js");
+
+        res.addDirectory("PS2");
+        res.addFile("PS2", "Victorious Boxers - Ippo's Road To Glory.cht");
         res.process();
     }
 
@@ -278,12 +288,12 @@ public class CheatApplication {
     public static List<String> populateSystems(String cheatDir) {
         File f = new File(cheatDir);
         List<String> res = new ArrayList<>();
-        for (File file: Iterables.limit(Files.fileTraverser().breadthFirst(new File(cheatDir)), 2))
-        {
+        for (File file: new File(cheatDir).listFiles()) {
             if (file.isDirectory()) {
                 if (file.getAbsolutePath().equals(f.getAbsolutePath())) continue;
                 res.add(file.getName());
             }
+
         }
         return res;
     }

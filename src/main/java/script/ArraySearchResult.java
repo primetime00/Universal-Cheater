@@ -5,11 +5,16 @@ import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import engine.Process;
+import io.Cheat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.FormatTools;
 
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 public class ArraySearchResult {
+    static Logger log = LoggerFactory.getLogger(ArraySearchResult.class);
     private long offset;
     private long base;
     private AOB aob;
@@ -25,6 +30,13 @@ public class ArraySearchResult {
         this.valid = true;
         this.scanned  = false;
         this.scriptData = null;
+    }
+
+    public ArraySearchResult(ArraySearchResult other) {
+        this(other.aob, other.base, other.offset);
+        this.valid = other.valid;
+        this.scanned = other.scanned;
+        this.scriptData = other.scriptData;
     }
 
     public long getOffset() {
@@ -67,14 +79,20 @@ public class ArraySearchResult {
     public boolean verify() {
         if (!isValid())
             return false;
+        ByteBuffer bytes = ByteBuffer.allocate(256);
         Memory mem = new Memory(aob.size());
         Kernel32.INSTANCE.ReadProcessMemory(Process.getHandle(), new Pointer(getAddress()), mem, aob.size(), null);
         for (int i=0; i<aob.size(); ++i) {
             if ( aob.aobAt(i) == Short.MAX_VALUE) continue;
-            if ( (mem.getByte(i) & 0xFF) != aob.aobAt(i) ) {
-                ScriptTools.log.warn(String.format("Could not write cheat at 0x%X.  AOB mismatch.", getAddress()));
+            int memByte = mem.getByte(i) & 0xFF;
+            if ( memByte != aob.aobAt(i) ) {
+                bytes.rewind();
+                log.warn(String.format("Could not write cheat at 0x%X.  AOB mismatch: %s", getAddress(), FormatTools.bytesToString(bytes.array())));
                 setValid(false);
                 return false;
+            }
+            else {
+                bytes.put((byte)memByte);
             }
         }
         return true;

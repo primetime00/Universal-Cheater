@@ -1,0 +1,14 @@
+{
+  "game": "X-Wing",
+  "regionSize": [16781312],
+  "window": {
+    "windowClass": "",
+    "windowTitle": "DOSBox",
+    "partialMatch": true
+  },
+  "cheats": [
+  ],
+  "scripts": [
+	"X-Wing/X-Wing.js"
+  ]
+}

@@ -6,9 +6,9 @@ import com.sun.jna.Memory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
-import script.ArraySearchResultList;
 import script.Value;
 
+import java.util.Collection;
 import java.util.Objects;
 
 public class Filter implements OperationProcessor{
@@ -42,7 +42,6 @@ public class Filter implements OperationProcessor{
         if (o == null || getClass() != o.getClass()) return false;
         Filter filter = (Filter) o;
         return offset == filter.offset &&
-                complete == filter.complete &&
                 Objects.equals(expect, filter.expect) &&
                 Objects.equals(low, filter.low) &&
                 Objects.equals(high, filter.high);
@@ -70,22 +69,21 @@ public class Filter implements OperationProcessor{
     }
 
     @Override
-    public void process(ArraySearchResultList resultList, long pos, Memory mem) {
-        for (ArraySearchResult res : resultList.getValidList(pos)) {
+    public void process(Collection<ArraySearchResult> results, long pos, Memory mem) {
+        for (ArraySearchResult result: results) {
             if (expect != null) {
-                byte[] bytes = res.getBytes(mem, offset, expect.size());
+                byte[] bytes = result.getBytes(mem, offset, expect.size());
                 if (!expect.equals(bytes)) {
-                    res.setValid(false);
+                    result.setValid(false);
                 }
-            }
-            else if (low != null && high != null) {
-                byte[] bytes = res.getBytes(mem, offset, high.size());
+            } else if (low != null && high != null) {
+                byte[] bytes = result.getBytes(mem, offset, high.size());
                 if (!Value.range(bytes, low, high)) {
-                    res.setValid(false);
+                    result.setValid(false);
                 }
-            }
-            else {
-                log.error("Filter is not compelte.  Results will be filtered");
+            } else {
+                log.error("Filter is not complete.  Results will be filtered");
+                result.setValid(false);
             }
         }
     }
@@ -96,7 +94,7 @@ public class Filter implements OperationProcessor{
     }
 
     @Override
-    public void searchComplete(ArraySearchResultList resultList) {
+    public void searchComplete(Collection<ArraySearchResult> results) {
         complete = true;
     }
 
@@ -104,6 +102,8 @@ public class Filter implements OperationProcessor{
     public void readJson(JsonObject data, JsonDeserializationContext ctx) {
         this.offset = data.get("offset").getAsInt();
         this.expect = ctx.deserialize(data.get("expect"), Value.class);
+        this.low = ctx.deserialize(data.get("low"), Value.class);
+        this.high = ctx.deserialize(data.get("high"), Value.class);
     }
 
     @Override

@@ -48,11 +48,17 @@ public class Script {
         engine.eval("var Code = Java.type('io.Code');");
         engine.eval("var CodeBuilder = Java.type('io.CodeBuilder');");
         engine.eval("var Filter = Java.type('io.Filter');");
+        engine.eval("var Instance = Java.type('io.Instance');");
         engine.eval("var Detect = Java.type('io.Detect');");
         engine.eval("var InvDetect = Java.type('io.InvDetect');");
-        engine.eval("var cheatSearch = function(cheat, mem, base) {Java.type('util.SearchTools').search(cheat, mem, base);}");
+        engine.eval("var Trigger = Java.type('io.Trigger');");
+        engine.eval("var toHex = function(value) {return Java.type('util.FormatTools').valueToHex(value);}");
+        engine.eval("var search = function(mem, base, byteString) {return Java.type('util.SearchTools').search(mem, base, byteString);}");
+        engine.eval("var searchRange = function(mem, base, offsetStart, size, byteString) {return Java.type('util.SearchTools').search(mem, base, offsetStart, size, byteString);}");
+        engine.eval("var writeResult = function(result, offset, value) {return Java.type('util.MemoryTools').writeResult(result, offset, value);}");
         engine.eval("var writeCheat = function(cheat) { return Java.type('util.MemoryTools').writeCheat(cheat);}");
         engine.eval("var logMessage = function(msg) {_script.log(msg);}");
+        engine.eval("var Log = Java.type('script.ScriptTools').log;");
 /*
         engine.eval("var ScriptTools = Java.type(\'script.ScriptTools\');");
         engine.eval("var SearchList = Java.type(\'script.ArraySearchResultList\');");

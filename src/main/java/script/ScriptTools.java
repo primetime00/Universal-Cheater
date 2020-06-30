@@ -17,8 +17,8 @@ import java.util.List;
 public class ScriptTools {
     public static Logger log = LoggerFactory.getLogger(ScriptTools.class);
 
-    static public List<ArraySearchResult> searchArray(long base, Memory mem, AOB aob) {
-        return SearchTools.aobSearch(aob, base, mem);
+    static public List<ArraySearchResult> searchArray(long base, Memory mem, long size, AOB aob) {
+        return SearchTools.aobSearch(aob, base, mem, size);
     }
 
     static public void dumpMemory(String filename, long offset, Memory mem, long size) {

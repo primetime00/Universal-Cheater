@@ -1,0 +1,36 @@
+{
+  "game": "Lands Of Lore",
+  "regionSize": [16781312],
+  "window": {
+    "windowClass": "",
+    "windowTitle": "DOSBox",
+    "partialMatch": true
+  },
+  "cheats": [
+    {
+      "name": "Unlimited Money",
+      "scan": "05 00 52 6D 05 00 76 6E 00 00 F3 5D 00 00 EF 53 00 00 44 5E 00 00 2E 44",
+      "codes": [ { "offset": 552, "value": "d 9999 s 2" } ]
+    },
+    {
+      "name": "Infinite Health",
+      "scan": "94 24 CF 2F 01 00 A7 00 00 00 00 00 00 00 ??",
+      "codes": [ { "offset": 71, "value": "d 999 s 2" }, { "offset": 73, "value": "d 999 s 2" } ]
+    },
+    {
+      "name": "Infinite Magic",
+      "scan": "94 24 CF 2F 01 00 A7 00 00 00 00 00 00 00 ??",
+      "codes": [ { "offset": 75, "value": "d 999 s 2" }, { "offset": 77, "value": "d 999 s 2" } ]
+    },
+    {
+      "name": "Max Stats",
+      "scan": "94 24 CF 2F 01 00 A7 00 00 00 00 00 00 00 ??",
+      "codes": [ { "offset": 69, "value": "d 180 s 1" }, { "offset": 37, "value": "d 180 s 1" }, 
+				 { "offset": 130, "value": "d 400000 s 4" }, { "offset": 126, "value": "d 400000 s 4" },
+				 { "offset": 122, "value": "d 400000 s 4" }]
+    }  			
+  ],
+  "scripts": [
+	"Lands Of Lore/Lands Of Lore.js"
+  ]
+}

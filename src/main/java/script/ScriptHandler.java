@@ -7,12 +7,8 @@ import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.script.Invocable;
 import javax.script.ScriptEngine;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ScriptHandler {
     static Logger log = LoggerFactory.getLogger(ScriptHandler.class);
@@ -21,6 +17,17 @@ public class ScriptHandler {
 
     public ScriptHandler(String scriptFile) throws Exception {
         this();
+        this.script = createScript(scriptFile);
+        this.engine = script.getEngine();
+    }
+
+    public ScriptHandler(Script script) {
+        this();
+        this.script = script;
+        this.engine = script.getEngine();
+    }
+
+    private Script createScript(String scriptFile) throws Exception {
         if (Process.getInstance() == null) {
             throw new Exception("Cannot create script handler since no process is open");
         }
@@ -28,9 +35,9 @@ public class ScriptHandler {
             throw new Exception("Cannot create script handler since no process is open correctly");
         }
         RunnableCheat data = Process.getInstance().getData();
-        this.script = new Script(String.format("%s/%s/scripts/%s", data.getDirectory(), data.getSystem(), scriptFile));
-        this.engine = script.getEngine();
+        return new Script(String.format("%s/%s/scripts/%s", data.getDirectory(), data.getSystem(), scriptFile));
     }
+
 
     public void initialize(Cheat c) {
         try {
@@ -49,17 +56,19 @@ public class ScriptHandler {
         AFTER_WRITE,
         ON_RESET,
         ON_TRIGGER,
-        ON_TOGGLE
+        ON_TOGGLE,
+        ON_RESULTS,
+        ON_MONITOR_CHANGE,
+        WRITE_OVERRIDE
     };
     List<String> handleTypes;
     Map<HANDLE_TYPE, ScriptObjectMirror> handleMap;
-    ScriptObjectMirror beforeWrite;
-    ScriptObjectMirror afterWrite;
 
     public ScriptHandler() {
         handleMap = new HashMap<>();
         handleTypes = Arrays.asList(HANDLE_TYPE.BEFORE_WRITE.name(), HANDLE_TYPE.AFTER_WRITE.name(), HANDLE_TYPE.ON_RESET.name(),
-                HANDLE_TYPE.ON_TOGGLE.name(), HANDLE_TYPE.ON_TRIGGER.name());
+                HANDLE_TYPE.ON_TOGGLE.name(), HANDLE_TYPE.ON_TRIGGER.name(), HANDLE_TYPE.ON_RESULTS.name(), HANDLE_TYPE.WRITE_OVERRIDE.name(),
+                HANDLE_TYPE.ON_MONITOR_CHANGE.name());
     }
 
     public ScriptHandler(ScriptEngine engine) {
@@ -87,7 +96,7 @@ public class ScriptHandler {
         return handleMap.containsKey(type);
     }
 
-    public void handle(HANDLE_TYPE type, Object data) {
+    public void handle(HANDLE_TYPE type, Object ... data) {
         if (!has(type))
             return;
         ScriptObjectMirror func = handleMap.get(type);
@@ -105,12 +114,35 @@ public class ScriptHandler {
     public void handle(HANDLE_TYPE type) {
         if (!has(type))
             return;
+        ScriptObjectMirror func = handleMap.get(type);
+        if (!func.isFunction()) {
+            log.error("Could not call handler for cheat [{}].  It's not a function", type.name());
+            return;
+        }
         try {
-            ((Invocable)engine).invokeFunction(type.name().toLowerCase());
+            func.call(this);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
+
+    public Object handleReturn(HANDLE_TYPE type) {
+        if (!has(type))
+            return null;
+
+        ScriptObjectMirror func = handleMap.get(type);
+        if (!func.isFunction()) {
+            log.error("Could not call handler for cheat [{}].  It's not a function", type.name());
+            return null;
+        }
+        try {
+            return func.call(this);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
+
 
 
 

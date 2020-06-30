@@ -6,11 +6,13 @@ import com.sun.jna.Memory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
-import script.ArraySearchResultList;
 import script.Value;
 import util.FormatTools;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Detect implements OperationProcessor {
     static Logger log = LoggerFactory.getLogger(Detect.class);
@@ -93,15 +95,13 @@ public class Detect implements OperationProcessor {
         if (o == null || getClass() != o.getClass()) return false;
         Detect detect = (Detect) o;
         return offset == detect.offset &&
-                size == detect.size &&
-                complete == detect.complete &&
                 Objects.equals(min, detect.min) &&
                 Objects.equals(max, detect.max);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(offset, min, max, size);
+        return Objects.hash(offset, min, max);
     }
 
     public int getOffset() {
@@ -121,8 +121,8 @@ public class Detect implements OperationProcessor {
     }
 
     @Override
-    public void process(ArraySearchResultList resultList, long pos, Memory mem) {
-        for (ArraySearchResult res: resultList.getValidList(pos)) {
+    public void process(Collection<ArraySearchResult> results, long pos, Memory mem) {
+        for (ArraySearchResult res: results) {
             if (res.getMiscData() == null || !(res.getMiscData() instanceof DetectData)) {
                 res.setMiscData(new DetectData(res.getBytesValue(mem, offset, size == 0 ? max.size() : size)));
             }
@@ -140,21 +140,22 @@ public class Detect implements OperationProcessor {
     }
 
     @Override
-    public void searchComplete(ArraySearchResultList resultList) {
-        boolean found = resultList.getAllValidList().stream().anyMatch(e ->
+    public void searchComplete(Collection<ArraySearchResult> results) {
+        List<ArraySearchResult> validResults = results.stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
+        boolean found = validResults.stream().anyMatch(e ->
                 e.getMiscData() != null &&
                         e.getMiscData() instanceof DetectData &&
                         ((DetectData) e.getMiscData()).getDetectRange() == DetectData.DetectRange.INRANGE);
         if (found) {
-            for (ArraySearchResult res : resultList.getAllValidList()) {
+            for (ArraySearchResult res : validResults) {
                 if (res.getMiscData() instanceof DetectData) {
                     res.setValid(((DetectData)res.getMiscData()).getDetectRange() == DetectData.DetectRange.INRANGE);
                 }
             }
         }
-        complete = found && resultList.getAllValidList().size() > 0;
+        complete = found;
         if (complete) {
-            log.trace("Found valid address at {}", FormatTools.valueToHex(resultList.getAllValidList().get(0).getAddress()));
+            log.trace("Found valid address at {}", FormatTools.valueToHex(validResults.get(0).getAddress()));
         }
     }
 

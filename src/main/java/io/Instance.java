@@ -7,11 +7,13 @@ import engine.ScanMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
-import script.ArraySearchResultList;
 import util.FormatTools;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class Instance implements OperationProcessor{
     static Logger log = LoggerFactory.getLogger(Instance.class);
@@ -21,19 +23,24 @@ public class Instance implements OperationProcessor{
     private boolean found = false;
     private boolean complete = false;
 
-    @Override
-    public void process(ArraySearchResultList resultList, long pos, Memory mem) {
+    public Instance(int identity) {
+        this.identity = identity;
     }
 
-    private void filterResults(ArraySearchResultList originalResults, ArraySearchResultList otherResults) {
-        complete = true;
-        List<ArraySearchResult> results = otherResults.getAllValidList();
-        for (ArraySearchResult res : results) {
-            for (ArraySearchResult mRes : originalResults.getAllList()) {
+    public Instance() {
+    }
+
+    @Override
+    public void process(Collection<ArraySearchResult> results, long pos, Memory mem) {
+    }
+
+    private void filterResults(Collection<ArraySearchResult> originalResults, List<ArraySearchResult> otherResult) {
+        for (ArraySearchResult res : otherResult) {
+            for (ArraySearchResult mRes : originalResults) {
                 mRes.setValid(false);
                 if (mRes.getAddress() == res.getAddress()) {
                     mRes.setValid(true);
-                    break;
+                    complete = true;
                 }
             }
         }
@@ -45,7 +52,8 @@ public class Instance implements OperationProcessor{
     }
 
     @Override
-    public void searchComplete(ArraySearchResultList resultList) {
+    public void searchComplete(Collection<ArraySearchResult> results) {
+        List<ArraySearchResult> validResults = ScanMap.get().getAllSearchResults().stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
         if (!found) {
             if (scanCount%10 != 0)
                 return;
@@ -59,15 +67,16 @@ public class Instance implements OperationProcessor{
         if (found && !complete && instanceCheat != null) {
             if (instanceCheat.hasOperations()) {
                 if (instanceCheat.getCodes().stream().allMatch(Code::operationsComplete)) {
-                    filterResults(resultList, instanceCheat.getResults());
+                    List<ArraySearchResult> instanceResults = ScanMap.get().getAllSearchResults(instanceCheat).stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
+                    filterResults(results, instanceResults);
                 }
             }
             else {
-                filterResults(resultList, instanceCheat.getResults());
+                filterResults(results, new ArrayList(instanceCheat.getResults()));
             }
         }
         if (complete) {
-            log.trace("Instance Found valid address at {}", FormatTools.valueToHex(resultList.getAllValidList().get(0).getAddress()));
+            log.trace("Instance Found valid address at {}", FormatTools.valueToHex(validResults.get(0).getAddress()));
         }
     }
 

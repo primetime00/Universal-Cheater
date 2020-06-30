@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static com.sun.jna.platform.win32.WinNT.PAGE_READWRITE;
 
@@ -33,7 +32,6 @@ public class Process {
     static private Process instance = null;
     static public boolean debugMode = false;
     private int pid;
-    private ReentrantLock lock;
     private static WinNT.HANDLE handle = null;
     private WinNT.HWND selectedHWND;
     CheatFile cheatFile;
@@ -50,10 +48,10 @@ public class Process {
     private int passes;
     private ScanMap scanMap;
     private KeyHandler keyHandler;
+    private Memory readMemory;
 
 
     public Process(BlockingQueue<Message> messageQueue) throws Exception {
-        this.lock = new ReentrantLock();
         this.scanMap = ScanMap.get();
         this.messageQueue = messageQueue;
         this.regionSet = new HashSet<>();
@@ -193,16 +191,16 @@ public class Process {
 
     public void performSearch() {
         WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
-        WinBase.SYSTEM_INFO info =  new WinBase.SYSTEM_INFO();
         long pos = 0;
+        if (readMemory == null)
+            readMemory = allocateMemory();
         scanMap.update(cheatList, scriptList);
         while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
             if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
                 if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size == mbi.regionSize.longValue())) {
                     if (passes == 0 || regionSet.contains(pos)) { //this is a new region for some reason, let's ignore it.
-                        Memory mem = new Memory(mbi.regionSize.longValue());
-                        Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), mem, mbi.regionSize.intValue(), null);
-                        cheatSearch(pos, mem);
+                        Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), readMemory, mbi.regionSize.intValue(), null);
+                        scanMap.search(pos, readMemory, mbi.regionSize.longValue());
                         regionSet.add(pos);
                         log.trace("Searching...");
                     }
@@ -212,16 +210,33 @@ public class Process {
         }
         passes++;
         searchComplete();
+        scanMap.writeResults();
+    }
+
+    private Memory allocateMemory() {
+        long pos = 0;
+        long maxMemory = Long.MIN_VALUE;
+        WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
+        while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
+            if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
+                maxMemory = Math.max(maxMemory, mbi.regionSize.longValue());
+            }
+            pos += mbi.regionSize.longValue();
+        }
+        log.info("Grabbing memory of size {}", maxMemory);
+        return new Memory(maxMemory);
     }
 
     private void searchComplete() {
         int count = 0;
         if (cheatList != null) {
             for (io.Cheat cheat : cheatList) {
+                if (!cheat.parentProcessingComplete())
+                    continue;
                 count += cheat.getResults().size();
                 for (Code code : cheat.getCodes()) {
                     if (code.getOperations() != null && code.getOperations().size() > 0) {
-                        code.getCurrentOperation().searchComplete(cheat.getResults());
+                        code.getCurrentOperation().searchComplete(scanMap.getAllSearchResults(cheat));
                     }
                 }
             }
@@ -230,25 +245,24 @@ public class Process {
             for (Script script : scriptList) {
                 try {
                     for (Cheat cheat : script.getAllCheats()) {
+                        if (!cheat.parentProcessingComplete())
+                            continue;
                         count += cheat.getResults().size();
                         for (Code code : cheat.getCodes()) {
                             if (code.getOperations() != null && code.getOperations().size() > 0) {
-                                code.getCurrentOperation().searchComplete(cheat.getResults());
+                                code.getCurrentOperation().searchComplete(scanMap.getAllSearchResults(cheat));
                             }
                         }
                     }
                     script.searchComplete();
                 } catch (Exception ex) {
-                    log.error(ex.getMessage());
+                    log.error("Script Error {}", ex.getMessage());
                 }
             }
         }
         log.trace("Total results: {}", count);
     }
 
-    private void cheatSearch(long pos, Memory mem) {
-        scanMap.search(pos, mem);
-    }
 
     public void writeCheats() {
         scanMap.write(cheatList, scriptList);
@@ -264,15 +278,19 @@ public class Process {
             closed = true;
         }
         //do we need to search ?
+        if (!searchNeeded())
+            return;
         if (scriptList.size() > 0 || cheatList.size() > 0) {
-            try {
-                lock.lock();
-                performSearch();
-            }
-            finally {
-                lock.unlock();
-            }
+            performSearch();
         }
+    }
+
+    private boolean searchNeeded() {
+        for (Cheat c : scanMap.getEveryCheat()) {
+            if (c.isEnabled())
+                return true;
+        }
+        return false;
     }
 
     public void start() {
@@ -292,34 +310,31 @@ public class Process {
             close();
             closed = true;
         }
-        try {
-            lock.lock();
-            writeCheats();
-        } finally {
-            lock.unlock();
-        }
+        scanMap.write(cheatList, scriptList);
     }
 
     public void writeProcess() {
         while (!closed) {
             try {
                 processWrites();
-                Thread.sleep(200);
+                Thread.sleep(50);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
     }
     public void searchProcess() {
+        readMemory = allocateMemory();
         while (!closed) {
             try {
                 searchLoop();
-                Thread.sleep(200);
+                Thread.sleep(300);
             } catch (InterruptedException e) {
                 log.warn("Search thread interrupted!");
                 break;
             } catch (Exception e) {
-                log.error(e.getMessage());
+                log.error("Search Error {}", e.getMessage());
+                e.printStackTrace();
                 break;
             }
         }
@@ -352,7 +367,7 @@ public class Process {
             log.error("Could not find cheat {}", id);
             return;
         }
-        cheat.reset();
+        cheat.queueReset();
     }
 
 
@@ -372,23 +387,6 @@ public class Process {
             }
         }
         return null;
-        /*
-        for (MasterCode c : masterList) {
-            for (Cheat item : c.getCodes()) {
-                if (item.getId() == id)
-                    return item;
-            }
-        }
-        List<Cheat> scriptCheats = new ArrayList<>();
-        scriptList.forEach(s -> scriptCheats.addAll(s.getCheats()));
-        for (Cheat item: scriptCheats) {
-            if (item.getId() == id) {
-                return item;
-            }
-        }
-        throw new Exception(String.format("Could not find cheat with id %d", id));
-
-         */
     }
 
     public RunnableCheat getData() {

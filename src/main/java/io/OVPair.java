@@ -27,6 +27,11 @@ public class OVPair {
         return value;
     }
 
+    public void setValue(String val) {
+        value = Value.createValue(val);
+    }
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -39,5 +44,14 @@ public class OVPair {
     @Override
     public int hashCode() {
         return Objects.hash(offset, value);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Offset: %X [%s]", offset, value);
+    }
+
+    public String getAddress(long addr) {
+        return String.format(String.format("Address: %X [%s]", addr+offset, value));
     }
 }

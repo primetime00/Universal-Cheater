@@ -41,6 +41,8 @@
     },
     {
       "name": "Share Cheat 1",
+      "resetOnWrite": true,
+      "multiMatch": false,
       "scan": "5F 46 41 4B 45 00",
       "codes": [
         {

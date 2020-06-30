@@ -21,6 +21,7 @@
     }
   ],
   "scripts": [
-    "Strike Commander/Strike Commander - Ammo.js"
+    "Strike Commander/Strike Commander - Player Codes.js",
+    "Strike Commander/Strike Commander - CPU Codes.js"
   ]
 }

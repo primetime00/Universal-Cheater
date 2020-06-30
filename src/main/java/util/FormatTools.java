@@ -23,16 +23,16 @@ public class FormatTools {
         long res = -1;
         switch (size) {
             default:
-                res = bb.getInt();
+                res = Integer.toUnsignedLong(bb.getInt());
                 break;
             case 1:
-                res = bb.get();
+                res = Byte.toUnsignedLong(bb.get());
                 break;
             case 2:
-                res = bb.getShort();
+                res = Short.toUnsignedLong(bb.getShort());
                 break;
             case 4:
-                res = bb.getInt();
+                res = Integer.toUnsignedLong(bb.getInt());
                 break;
             case 8:
                 res = bb.getLong();

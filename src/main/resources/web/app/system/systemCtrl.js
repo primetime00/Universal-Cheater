@@ -19,9 +19,7 @@ angular.module('uCheatApp').controller('systemCtrl', ['$scope', '$location', '$r
 
         $scope.$on('device.back', function(evt) { //we need to exit the game
             console.log("BACK")
-            ons.notification.toast({'message': "Can't go back...", 'timeout':2000})
-            $location.path('/system');
-            $route.reload();
+            appCom.toast("Can't go back...");
         });
 
         $scope.init();

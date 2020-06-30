@@ -2,14 +2,17 @@ package io;
 
 import com.google.gson.*;
 import com.sun.jna.Memory;
+import script.ArraySearchResult;
 import script.ArraySearchResultList;
 
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.List;
 
 public interface OperationProcessor {
-    void process(ArraySearchResultList resultList, long pos, Memory mem);
+    void process(Collection<ArraySearchResult> results, long pos, Memory mem);
     boolean isComplete();
-    void searchComplete(ArraySearchResultList resultList);
+    void searchComplete(Collection<ArraySearchResult> result);
     void readJson(JsonObject data, JsonDeserializationContext ctx);
     void reset();
 

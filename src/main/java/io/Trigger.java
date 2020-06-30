@@ -41,6 +41,10 @@ public class Trigger {
             on = true;
     }
 
+    public Trigger(String type, String behavior, int key) {
+        this(stringToType(type, Type.BUTTON), stringToBehavior(behavior, Behavior.HOLD), key);
+    }
+
 
     static Type stringToType(String type, Type def) {
         if (type.toLowerCase().equals("button"))
@@ -93,6 +97,7 @@ public class Trigger {
         }
         else {
             on = !on;
+            info.setDown(on);
         }
 
     }
@@ -191,6 +196,10 @@ public class Trigger {
 
         public boolean isDown() {
             return isDown;
+        }
+
+        public void setDown(boolean on) {
+            isDown = on;
         }
     }
 }

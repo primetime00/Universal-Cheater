@@ -1,0 +1,48 @@
+{
+  "game": "Victorious Boxers",
+  "regionSize": [],
+  "window": {
+    "windowClass": "",
+    "windowTitle": "Slot:",
+    "partialMatch": true
+  },
+  "cheats": [
+	{
+      "name": "Infinite Health",
+      "scan": "01 A0 4E 1C 00",
+      "codes": [ 
+			{ "offset": 929, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 949, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 969, "value": "b 00CA9A3B00CA9A3B" }
+		]
+    },  
+	{
+      "name": "Super Energy",
+      "scan": "01 A0 4E 1C 00",
+      "codes": [ 
+			{ "offset": 89, "value": "b 00CA9A3B00CA9A3B00CA9A3B" },
+			{ "offset": 109, "value": "b 00CA9A3B00CA9A3B00CA9A3B" },
+			{ "offset": 129, "value": "b 00CA9A3B00CA9A3B00CA9A3B" },
+			{ "offset": 149, "value": "b 00CA9A3B00CA9A3B00CA9A3B" }
+		]
+    },
+	{
+      "name": "Power Punch",
+      "scan": "01 A0 4E 1C 00",
+      "codes": [ 
+			{ "offset": 429, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 449, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 469, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 489, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 629, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 649, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 669, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 689, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 709, "value": "b 00CA9A3B00CA9A3B" },
+			{ "offset": 729, "value": "b 00CA9A3B00CA9A3B" }			
+		]
+    } 	
+  ],
+  "scripts": [
+  ]
+}

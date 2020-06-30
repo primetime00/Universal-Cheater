@@ -1,10 +1,8 @@
 package script;
 
 import com.google.gson.Gson;
-import engine.CheatApplication;
+import engine.*;
 import engine.Process;
-import engine.UnitCom;
-import engine.Util;
 import games.RunnableCheat;
 import io.*;
 import message.Message;
@@ -20,6 +18,7 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
@@ -50,6 +49,10 @@ public class ScriptTest {
         Thread.sleep(200);
     }
 
+    private List<ArraySearchResult> getValidResults(Cheat c) {
+        return ScanMap.get().getAllSearchResults(c).stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
+    }
+
     @Test
     public void testScript() throws IOException {
         assertEquals(1, process.getScriptList().size());
@@ -66,7 +69,7 @@ public class ScriptTest {
         assertTrue(cheat2.operationsComplete());
         assertTrue(cheat3.operationsComplete());
         process.writeCheats();
-        assertEquals(3, countLog(s, "Cheat success"));
+        assertEquals(2, countLog(s, "Cheat success"));
         process.performSearch();
         assertFalse(cheat1.operationsComplete());
         unitCom.changeTestValue((byte)1, (byte)15);
@@ -83,7 +86,7 @@ public class ScriptTest {
         process.performSearch();
         Code code = cheat1.getCodes().get(0);
         Code code2 = cheat1.getCodes().get(1);
-        ArraySearchResult res = cheat1.getResults().getAllValidList().get(0);
+        ArraySearchResult res = getValidResults(cheat1).get(0);
         ByteBuffer bb = ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         long value = bb.get();
         assertEquals(10, value);
@@ -96,7 +99,7 @@ public class ScriptTest {
         assertEquals(10, value);
         bb = ByteBuffer.wrap(MemoryTools.readBytes(code2, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         value = bb.getShort();
-        assertEquals(999, value);
+        assertEquals(20000, value);
 
         cheat1.verify();
         process.performSearch();
@@ -104,7 +107,11 @@ public class ScriptTest {
         process.performSearch();
 
         process.writeCheats();
-        res = cheat1.getResults().getAllValidList().get(0);
+        res = cheat1.getResults().iterator().next();
+        bb = ByteBuffer.wrap(MemoryTools.readBytes(code2, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
+        value = bb.getShort();
+        assertEquals(999, value);
+
         bb = ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         value = bb.get();
         assertEquals(9, value);
@@ -127,8 +134,8 @@ public class ScriptTest {
         //verify the current value
         Code code = cheat1.getCodes().get(0);
         Code code2 = cheat1.getCodes().get(1);
-        ArraySearchResult res = cheat1.getResults().getAllValidList().get(0);
-        int initialSize = cheat1.getResults().getAllValidList().size();
+        ArraySearchResult res = cheat1.getResults().iterator().next();
+        int initialSize = cheat1.getResults().size();
 
         //let's write the new value
         process.writeCheats();
@@ -138,7 +145,7 @@ public class ScriptTest {
         //try to write a second time with bad aob
         process.writeCheats();
         //assertEquals(initialSize-1, cheat1.getResults().getAllValidList().size());
-        assertEquals(1, countLog(s, "Cheat failed"));
+        assertEquals(3, countLog(s, "Cheat failed"));
 
     }
 

@@ -174,7 +174,7 @@ angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$r
         }
 
         $scope.$on('network.error', function(evt, error) { //we need to exit the game
-            ons.notification.toast({'message': 'Network error: Check Application...', 'timeout':2000})
+            appCom.toast("Network error: Check Application...");
             $scope.destruct();
             $location.path('/');
             $route.reload();

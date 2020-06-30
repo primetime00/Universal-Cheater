@@ -1,33 +1,25 @@
 package engine;
 
-import cheat.AOB;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import games.RunnableCheat;
 import io.*;
 import message.Message;
 import org.eclipse.jetty.util.BlockingArrayQueue;
-import org.eclipse.jetty.util.MemoryUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import script.ArraySearchResult;
 import script.Script;
-import script.Value;
 import util.MemoryTools;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
 
-import static engine.Util.*;
 import static org.junit.Assert.*;
 
 public class ProcessTest {
@@ -57,17 +49,23 @@ public class ProcessTest {
         Thread.sleep(200);
     }
 
+    private List<ArraySearchResult> getValidResults(Cheat c) {
+        return ScanMap.get().getAllSearchResults(c).stream().filter(ArraySearchResult::isValid).collect(Collectors.toList());
+    }
+
+
     @Test
     public void testRead() throws IOException {
         process.performSearch(); //gather initial results and filter
         CheatFile f = process.getCheatFile();
         assertEquals(3, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
-        assertEquals(1, c.getResults().getAllValidList().size());
-        assertTrue(c.getResults().getAllValidList().get(0).isValid());
+        List<ArraySearchResult> validList = getValidResults(c);
+        assertEquals(1, validList.size());
+        assertTrue(validList.get(0).isValid());
         assertEquals(2, c.getCodes().size());
         Code code = c.getCodes().get(0);
-        ArraySearchResult res = c.getResults().getAllValidList().get(0);
+        ArraySearchResult res = validList.get(0);
         System.out.println(String.format("Found code at %X with value %d", code.getFirstOffset()+res.getAddress(), ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN).rewind().getInt()));
         ByteBuffer bb = ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         long value = bb.get();
@@ -86,7 +84,7 @@ public class ProcessTest {
         bb = ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         value = bb.get();
         assertEquals(15, value);
-        assertTrue(f.getCheats().get(0).getResults().getAllValidList().size() > 0);
+        assertTrue(f.getCheats().get(0).getResults().size() > 0);
     }
 
     @Test
@@ -118,12 +116,14 @@ public class ProcessTest {
         List<Filter> filters = f.getCheats().get(0).getCodes().get(0).getFilters();
         f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(filters);
         process.performSearch();
-        assertEquals(3, f.getCheats().get(0).getResults().getAllValidList().size());
+        assertEquals(3, getValidResults(f.getCheats().get(0)).size());
         process.performSearch();
-        assertEquals(3, f.getCheats().get(0).getResults().getAllValidList().size());
+        assertEquals(3, getValidResults(f.getCheats().get(0)).size());
+        assertEquals(0, f.getCheats().get(0).getResults().size() );
         unitCom.changeTestValue((byte)1, (byte)16);
         process.performSearch();
-        assertEquals(1, f.getCheats().get(0).getResults().getAllValidList().size());
+        assertEquals(1, f.getCheats().get(0).getResults().size() );
+
     }
 
     @Test
@@ -135,11 +135,10 @@ public class ProcessTest {
         process.performSearch(); //gather initial results and filter
         assertEquals(3, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
-        assertEquals(1, c.getResults().getAllValidList().size());
         //verify the current value
         Code code = c.getCodes().get(0);
         Code code2 = c.getCodes().get(1);
-        ArraySearchResult res = c.getResults().getAllValidList().get(0);
+        ArraySearchResult res = c.getResults().iterator().next();
         ByteBuffer bb = ByteBuffer.wrap(MemoryTools.readBytes(code, res, 4)).order(ByteOrder.LITTLE_ENDIAN);
         long value = bb.get();
         assertEquals(10, value);
@@ -157,6 +156,22 @@ public class ProcessTest {
         value = bb.getShort();
         assertEquals(999, value);
     }
+
+    @Test
+    public void testWriteOnce() {
+        //remove detects
+        CheatFile f = process.getCheatFile();
+        List<Detect> detects = f.getCheats().get(0).getCodes().get(0).getDetects();
+        f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(detects);
+        process.performSearch(); //gather initial results and filter
+        assertEquals(3, f.getCheats().size());
+        assertEquals(3, f.getCheats().get(1).getResults().size());
+        assertEquals(3, f.getCheats().get(2).getResults().size());
+        process.writeCheats();
+        assertEquals(0, f.getCheats().get(1).getResults().size());
+        assertEquals(3, f.getCheats().get(2).getResults().size());
+    }
+
 
     @Test
     public void testCheatScript() {
@@ -198,20 +213,19 @@ public class ProcessTest {
         process.performSearch(); //gather initial results and filter
         assertEquals(3, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
-        assertEquals(1, c.getResults().getAllValidList().size());
         //verify the current value
         Code code = c.getCodes().get(0);
         Code code2 = c.getCodes().get(1);
-        ArraySearchResult res = c.getResults().getAllValidList().get(0);
         //let's write the new value
         process.writeCheats();
-        assertEquals(1, c.getResults().getAllValidList().size());
+        assertEquals(1, c.getResults().size());
         //next change the AOB and try to write cheats again!
         unitCom.aobChange((byte)1);
 
         //try to write a second time with bad aob
         process.writeCheats();
-        assertEquals(0, c.getResults().getAllValidList().size());
+        assertEquals(0, getValidResults(c).size());
+        assertEquals(0, c.getResults().size());
 
     }
 

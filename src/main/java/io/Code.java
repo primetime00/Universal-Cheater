@@ -3,15 +3,16 @@ package io;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.sun.jna.Memory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import script.ArraySearchResult;
 import script.ArraySearchResultList;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Code {
+    static Logger log = LoggerFactory.getLogger(Code.class);
     private List<OVPair> offsets;
     protected List<OperationProcessor> operations;
     transient protected int currentProcessor;
@@ -49,14 +50,13 @@ public class Code {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Code code = (Code) o;
-        return currentProcessor == code.currentProcessor &&
-                Objects.equals(offsets, code.offsets) &&
+        return  Objects.equals(offsets, code.offsets) &&
                 Objects.equals(operations, code.operations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(offsets, operations, currentProcessor);
+        return Objects.hash(offsets, operations);
     }
 
     public List<OVPair> getOffsets() {
@@ -111,11 +111,12 @@ public class Code {
     }
 
 
-    public void processOperations(ArraySearchResultList results, long pos, Memory mem) {
+    public void processOperations(Collection<ArraySearchResult> results, long pos, Memory mem) {
         if (getOperations() == null || getOperations().size() == 0 || currentProcessor >= getOperations().size())
             return;
-        if (getOperations().get(currentProcessor).isComplete())
+        if (getOperations().get(currentProcessor).isComplete()) {
             currentProcessor++;
+        }
         getOperations().get(currentProcessor).process(results, pos, mem);
     }
 
@@ -133,6 +134,14 @@ public class Code {
         offsets.add(new OVPair(offset, value));
     }
 
+    public OVPair findOffsetValue(int offset) {
+        for (OVPair item: offsets) {
+            if (item.getOffset() == offset)
+                return item;
+        }
+        return null;
+    }
+
     public void reset() {
         if (operations == null || operations.size() == 0) {
             currentProcessor = -1;
@@ -143,6 +152,26 @@ public class Code {
         }
 
     }
+
+    @Override
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("Code:");
+        for (OVPair pair : offsets) {
+            buf.append(pair.toString());
+        }
+        return buf.toString();
+    }
+
+    public String toAbsoluteAddress(long addr) {
+        StringBuffer buf = new StringBuffer();
+        buf.append("Code:");
+        for (OVPair pair : offsets) {
+            buf.append(pair.getAddress(addr));
+        }
+        return buf.toString();
+    }
+
 
     static public class CodeDeserializer implements JsonDeserializer<Code> {
 
