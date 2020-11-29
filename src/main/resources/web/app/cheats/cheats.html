@@ -1,20 +1,45 @@
-<div>
+<ons-page>
     <div ng-if="starting">
         <ons-progress-circular indeterminate></ons-progress-circular><i>Searching for game...</i>
     </div>
-    <ons-list ng-if="!starting">
-        <ons-list-item ng-repeat="cheat in cheats" modifier="longdivider" >
-            <div class="left" style="margin-right:15px; min-width:86px;">
-                <ons-button modifier="material" style="font-size:12px;" ng-if="hasButtonTrigger(cheat)" ng-disabled="!cheat.hasCheats" ng-click="triggerCheat(cheat)">{{getTriggerName(cheat)}}</ons-button>
-            </div>
-            <div class="center">
-                <div style="font-size:14px;" ng-style="getItemColor(cheat)">{{cheat.name}}</div>
-            </div>
-            <div class="right">
-                <ons-switch ng-model="cheat.enabled" ng-change="toggleCheat(cheat)"></ons-switch>
-                <ons-button modifier="material--flat" ng-click="resetCheat(cheat)">Reset</ons-button>
+    <ons-tabbar swipeable position="auto">
+        <ons-tab page="tab1.html" label="Cheats"  ng-attr-badge="{{cheats.length}}"></ons-tab>
+        <ons-tab page="tab2.html" label="Trainer"  ng-attr-badge="{{trainerOptions == undefined ? 0 : trainerOptions.length}}" active-icon="md-face"></ons-tab>
+    </ons-tabbar>
 
-            </div>
-        </ons-list-item>
-    </ons-list>
-</div>
+    <template id="tab1.html">
+        <ons-page id="Tab1">
+            <ons-list ng-if="!starting">
+                <ons-list-item ng-repeat="cheat in cheats" modifier="longdivider" >
+                    <div class="left" style="margin-right:15px; min-width:86px;">
+                        <ons-button modifier="material" style="font-size:12px;" ng-if="hasButtonTrigger(cheat)" ng-disabled="!cheat.hasCheats" ng-click="triggerCheat(cheat)">{{getTriggerName(cheat)}}</ons-button>
+                    </div>
+                    <div class="center">
+                        <div style="font-size:14px;" ng-style="getItemColor(cheat)">{{cheat.name}}</div>
+                    </div>
+                    <div class="right">
+                        <ons-switch ng-model="cheat.enabled" ng-change="toggleCheat(cheat)"></ons-switch>
+                        <ons-button modifier="material--flat" ng-click="resetCheat(cheat)">Reset</ons-button>
+
+                    </div>
+                </ons-list-item>
+            </ons-list>
+        </ons-page>
+    </template>
+
+    <template id="tab2.html">
+        <ons-page id="Tab2">
+            <ons-list ng-if="!starting">
+                <ons-list-item ng-repeat="option in trainerOptions" modifier="longdivider" >
+                    <div class="left" style="margin-right:15px; min-width:86px;">
+                        <ons-button modifier="material" style="font-size:12px;" ng-click="triggerTrainer(option)">Trigger</ons-button>
+                    </div>
+                    <div class="center">
+                        <div style="font-size:14px;">{{option.name}}</div>
+                    </div>
+                </ons-list-item>
+            </ons-list>
+        </ons-page>
+    </template>
+
+</ons-page>

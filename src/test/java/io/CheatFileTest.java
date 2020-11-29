@@ -58,7 +58,9 @@ public class CheatFileTest {
         //CheatFile f = gson.fromJson(new InputStreamReader(url.openStream()), CheatFile.class);
         CheatFile f = Process.getInstance().getCheatFile();
         Assert.assertEquals("Test Game", f.getGame());
-        Assert.assertEquals("UnitTestApp.exe", f.getWindow().getWindowTitle());
+
+        Assert.assertEquals("UnitTestApp.exe", f.getProcess());
+
         Assert.assertEquals(5, f.getCheats().size());
         Cheat c1 = f.getCheats().get(0);
         Cheat c2 = f.getCheats().get(1);

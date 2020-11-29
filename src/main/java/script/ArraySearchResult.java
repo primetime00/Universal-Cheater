@@ -8,6 +8,7 @@ import engine.Process;
 import io.Cheat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.AOBTools;
 import util.FormatTools;
 
 import java.nio.ByteBuffer;
@@ -76,6 +77,11 @@ public class ArraySearchResult {
         return FormatTools.memoryToValue(mem, 0, size);
     }
 
+    public double readFloat(long pos, int size) {
+        Memory mem = readMemory(pos, size);
+        return FormatTools.memoryToDecimal(mem, 0, size);
+    }
+
     public boolean verify() {
         if (!isValid())
             return false;
@@ -87,7 +93,7 @@ public class ArraySearchResult {
             int memByte = mem.getByte(i) & 0xFF;
             if ( memByte != aob.aobAt(i) ) {
                 bytes.rewind();
-                log.warn(String.format("Could not write cheat at 0x%X.  AOB mismatch: %s", getAddress(), FormatTools.bytesToString(bytes.array())));
+                log.warn(String.format("Could not write cheat at 0x%X.  AOB mismatch[%d]: %s", getAddress(), i, AOBTools.displayAOBCompare(aob, bytes.array())));
                 setValid(false);
                 return false;
             }

@@ -26,7 +26,7 @@ public class CheatApplicationTest {
     @Test
     public void testPopulateGames() {
         GameList list = CheatApplication.populateGameList(gson, "Cheat", cheatname);
-        assertEquals(4, list.getGameList().size());
+        assertEquals(5, list.getGameList().size());
         assertEquals("Test Game", list.getGameList().get(0).getGame());
         assertEquals("Test Game (Script)", list.getGameList().get(1).getGame());
         assertEquals("Unit Script Test Game", list.getGameList().get(2).getGame());

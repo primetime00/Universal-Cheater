@@ -1,11 +1,7 @@
 {
   "game": "Unit Script Test Game",
   "regionSize": [],
-  "window": {
-    "windowClass": "",
-    "windowTitle": "UnitTestApp.exe",
-    "partialMatch": true
-  },
+  "process": "UnitTestApp.exe",
   "scripts": [
     "testscript.js"
   ]

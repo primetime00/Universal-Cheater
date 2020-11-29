@@ -49,6 +49,36 @@ public class UnitCom {
 
     }
 
+    public int runUnitApp(String name) throws IOException {
+        URL url = getClass().getResource(String.format("/app/%s", name));
+        File dir = new File("testApp");
+        dir.mkdirs();
+        File appFile = new File(dir, name);
+        if (!appFile.exists()) {
+            try (FileOutputStream os = new FileOutputStream(appFile)) {
+                ByteStreams.copy(url.openStream(), os);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        //ProcessBuilder pb = new ProcessBuilder(appFile.getAbsolutePath());
+        //java.lang.Process p = pb.start();
+
+        Desktop d = Desktop.getDesktop();
+        d.open(appFile);
+
+        char title[] = new char[1024];
+        WinDef.HWND hwnd = User32.INSTANCE.FindWindow("ConsoleWindowClass", null);
+        User32.INSTANCE.GetWindowText(hwnd, title, 1024);
+        IntByReference ref = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(hwnd, ref);
+        return ref.getValue();
+
+
+    }
+
+
     public void connect(int port) throws IOException {
         client = new Socket("localhost", port);
     }

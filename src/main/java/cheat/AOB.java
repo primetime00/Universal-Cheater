@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import util.AOBTools;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -14,6 +15,11 @@ public class AOB {
     private short []aob;
     private int startIndex;
     private int endIndex;
+    public static AOB Empty = new AOB();
+
+    private AOB() {
+        aob = null;
+    }
 
     public AOB(String aobN) {
         this.aob = parseAOB(aobN);
@@ -49,6 +55,10 @@ public class AOB {
         return aob[index];
     }
 
+    public boolean isEmpty() {
+        return aob == null;
+    }
+
     public int getStartIndex() {
         return startIndex;
     }
@@ -59,6 +69,11 @@ public class AOB {
 
     public int size() {
         return aob.length;
+    }
+
+    @Override
+    public String toString() {
+        return AOBTools.displayAOB(this);
     }
 
     @Override

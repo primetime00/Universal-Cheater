@@ -9,6 +9,7 @@ import script.ArraySearchResult;
 import script.Script;
 import script.ScriptHandler;
 import util.FormatTools;
+import util.MemoryTools;
 import util.SearchTools;
 
 import java.util.*;
@@ -107,8 +108,10 @@ public class ScanMap {
                 continue;
 
             //scan one time for this entire set;
-            log.debug("Scanning for {}", cheats.iterator().next().getName());
             List<ArraySearchResult> results = SearchTools.aobSearch(key, pos, mem, size);
+            if (log.isTraceEnabled()) {
+                log.trace("Searched {}-{} AOB {} has {} results", FormatTools.valueToHex(pos), FormatTools.valueToHex(pos + size), key.toString(), results.size());
+            }
             if (results.size() > 0) {
                 for (Cheat cheat : cheats) {
                     if (!cheat.parentProcessingComplete())

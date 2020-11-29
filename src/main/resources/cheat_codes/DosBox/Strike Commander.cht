@@ -1,11 +1,7 @@
 {
   "game": "Strike Commander",
-  "regionSize": [16781312],
-  "window": {
-    "windowClass": "",
-    "windowTitle": "DOSBox",
-    "partialMatch": true
-  },
+  "regionSize": [{"low": 16781312, "high": 16781312}],
+  "process": "DOSBox.exe",
   "cheats": [
     {
       "name": "All Missiles",

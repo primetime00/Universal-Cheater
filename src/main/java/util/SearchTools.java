@@ -19,24 +19,29 @@ public class SearchTools {
     static public List<ArraySearchResult> aobSearch(AOB aob, long base, int offsetStart, long size, Memory mem) {
         long index = offsetStart;
         List<ArraySearchResult> results = new ArrayList<>();
-        long end = Math.min(offsetStart+size, size);
-        while (index+aob.size() < end) {
-            if ((mem.getByte(aob.getStartIndex()+index) & 0xFF) == aob.aobAtStart() &&
-                    (mem.getByte(aob.getEndIndex()+index) & 0xFF) == aob.aobAtEnd()) {
+        if (aob.isEmpty()) {
+            results.add(new ArraySearchResult(aob, 0, 0));
+        }
+        else {
+            long end = Math.min(offsetStart + size, size);
+            while (index + aob.size() < end) {
+                if ((mem.getByte(aob.getStartIndex() + index) & 0xFF) == aob.aobAtStart() &&
+                        (mem.getByte(aob.getEndIndex() + index) & 0xFF) == aob.aobAtEnd()) {
 
-                boolean match = true;
-                for (int i=0; i<aob.size(); ++i) {
-                    if (aob.aobAt(i) == Short.MAX_VALUE) continue;
-                    if ((mem.getByte(i+index) & 0xFF) != aob.aobAt(i)) {
-                        match = false;
-                        break;
+                    boolean match = true;
+                    for (int i = 0; i < aob.size(); ++i) {
+                        if (aob.aobAt(i) == Short.MAX_VALUE) continue;
+                        if ((mem.getByte(i + index) & 0xFF) != aob.aobAt(i)) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (match) {
+                        results.add(new ArraySearchResult(aob, base, index));
                     }
                 }
-                if (match) {
-                    results.add(new ArraySearchResult(aob, base, index));
-                }
+                index++;
             }
-            index++;
         }
         if (results.size() > 0) {
             log.debug("First matches found, making new.");

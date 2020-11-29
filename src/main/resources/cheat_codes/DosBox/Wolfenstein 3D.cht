@@ -1,11 +1,7 @@
 {
   "game": "Wolfenstein 3D",
-  "regionSize": [16781312, 33558528],
-  "window": {
-    "windowClass": "",
-    "windowTitle": "DOSBox",
-    "partialMatch": true
-  },
+  "regionSize": [{"low": 16781312, "high": 16781312}],
+  "process": "DOSBox.exe",
   "cheats": [
     {
       "name": "Unlimited Health",

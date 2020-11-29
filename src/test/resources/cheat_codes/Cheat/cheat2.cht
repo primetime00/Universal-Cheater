@@ -1,11 +1,7 @@
 {
   "game": "Test Game (Script)",
-  "regionSize": [16781312],
-  "window": {
-    "windowClass": "SDL_App",
-    "windowTitle": "",
-    "partialMatch": true
-  },
+  "regionSize": [{"low": 16781312, "high": 16781312}],
+  "process": "UnitTestApp.exe",
   "scripts": [
     "scripts/script.js"
   ]

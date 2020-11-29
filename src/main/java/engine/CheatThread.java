@@ -3,6 +3,7 @@ package engine;
 import games.Game;
 import games.RunnableCheat;
 import io.Cheat;
+import io.HotKey;
 import message.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,9 @@ public class CheatThread implements Runnable {
                 else if (msg.getData() instanceof CheatReset) {
                     resetCheat(((CheatReset)msg.getData()).getId(),  msg.getResponse());
                 }
+                else if (msg.getData() instanceof TrainerTrigger) {
+                    triggerTrainer(((TrainerTrigger)msg.getData()).getHotKey(),  msg.getResponse());
+                }
                 else if (msg.getData() instanceof ProcessComplete) {
                     log.info("engine.Process thread completed {}", ((ProcessComplete)msg.getData()).isTerminated());
                     Optional.ofNullable(Process.getInstance()).ifPresent(Process::close);
@@ -93,6 +97,22 @@ public class CheatThread implements Runnable {
             response.complete(new Failure(e.getMessage()));
         }
     }
+
+    private void triggerTrainer(HotKey key, CompletableFuture<Response> response) {
+        try {
+            if (Process.getInstance() != null) {
+                Process.getInstance().triggerTrainer(key);
+                response.complete(new Success());
+            }
+            else {
+                response.complete(new Failure("No process running."));
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            response.complete(new Failure(e.getMessage()));
+        }
+    }
+
 
 
     private void resetCheat(int id, CompletableFuture<Response> response) {

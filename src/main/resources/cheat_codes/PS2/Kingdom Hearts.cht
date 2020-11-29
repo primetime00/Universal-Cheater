@@ -1,0 +1,42 @@
+{
+  "game": "Kingdom Hearts",
+  "regionSize": [{"low": 13000000, "high": 42000000}],
+  "process": "pcsx2.exe",
+  "cheats": [
+	{
+      "name": "Infinite Munny",
+      "scan": "76 6F 69 63 65 2F ?? ?? 5F 73 6F 72 61 2E 76 73 62 00",
+      "codes": [{ "offset": -1320718, "value": "d 99999 s 4" }]
+    },  	  
+	{
+      "name": "Max Character 1 Battle Stats",
+      "scan": "76 6F 69 63 65 2F ?? ?? 5F 73 6F 72 61 2E 76 73 62 00",
+      "codes": [{ "offset": -157478, "value": "d 120 s 4" }, { "offset": -157474, "value": "d 120 s 4" },
+				{ "offset": -157470, "value": "d 120 s 4" }, { "offset": -157466, "value": "d 120 s 4" },
+				{ "offset": -157462, "value": "d 1500 s 4" }, { "offset": -157458, "value": "d 1500 s 4" },
+				{ "offset": -157348, "value": "d 120 s 2" }]
+    },	
+	{
+      "name": "Max Character 2 Battle Stats",
+      "scan": "76 6F 69 63 65 2F ?? ?? 5F 73 6F 72 61 2E 76 73 62 00",  
+      "codes": [{ "offset": -157250, "value": "d 120 s 4" }, { "offset": -157246, "value": "d 120 s 4" },
+				{ "offset": -157242, "value": "d 120 s 4" }, { "offset": -157238, "value": "d 120 s 4" },
+				{ "offset": -157234, "value": "d 1500 s 4" }, { "offset": -157230, "value": "d 1500 s 4" }]
+    },		
+	{
+      "name": "Max Character 3 Battle Stats",
+      "scan": "76 6F 69 63 65 2F ?? ?? 5F 73 6F 72 61 2E 76 73 62 00",
+      "codes": [{ "offset": -157022, "value": "d 120 s 4" }, { "offset": -157018, "value": "d 120 s 4" },
+				{ "offset": -157014, "value": "d 120 s 4" }, { "offset": -157010, "value": "d 120 s 4" },
+				{ "offset": -157006, "value": "d 1500 s 4" }, { "offset": -157002, "value": "d 1500 s 4" }]
+    },
+	{
+      "name": "Sora Max Stats",
+      "scan": "76 6F 69 63 65 2F ?? ?? 5F 73 6F 72 61 2E 76 73 62 00",
+      "codes": [{ "offset": -1411877, "value": "b FFFFFFFFFFFFFF" }]
+    }
+  ],
+  "scripts": [
+	"Kingdom Hearts/Kingdom Hearts.js"
+  ]
+}

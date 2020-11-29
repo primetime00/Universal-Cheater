@@ -1,7 +1,6 @@
 package engine;
 
 import cheat.AOB;
-import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.gson.*;
@@ -21,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import response.Failure;
 import response.GameList;
 import response.Response;
+import response.TrainerOptions;
 import script.Value;
 
 import java.awt.*;
@@ -33,6 +33,7 @@ import java.io.FileReader;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -67,8 +68,10 @@ public class CheatApplication {
         app.get("/getAppStatus", ctx -> getAppStatus(ctx));
         app.error(404, ctx -> {log.error("ERROR!"); ctx.render("web/index.html");});
         app.post("/runGameCheat", ctx -> executeGameCheat(ctx));
+        app.get("/getGameTrainer", ctx -> ctx.json(getGameTrainer()));
         app.post("/toggleGameCheat", ctx -> toggleGameCheat(ctx));
         app.post("/triggerGameCheat", ctx -> triggerGameCheat(ctx));
+        app.post("/triggerTrainer", ctx -> triggerTrainer(ctx));
         app.post("/resetGameCheat", ctx -> resetGameCheat(ctx));
         app.post("/exitCheat", ctx -> exitCheat(ctx));
         createDirectories();
@@ -145,23 +148,11 @@ public class CheatApplication {
     }
 
     private void createDirectories() {
+        Collection<ResourceList.ResourceAndDirectory> rl = ResourceList.getResourcesAndDirectories("cheat_codes");
+        Collection<String> dirs = ResourceList.getDistinctDirectories(rl);
         LocalResources res = new LocalResources();
-        res.addDirectory("DosBox");
-        res.addFile("DosBox", "Privateer.cht");
-        res.addFile("DosBox", "Wolfenstein 3D.cht");
-        res.addFile("DosBox", "Master Of Orion 2.cht");
-        res.addFile("DosBox", "Strike Commander.cht");
-        res.addFile("DosBox", "Command & Conquer - Red Alert.cht");
-        res.addFile("DosBox", "Lands Of Lore.cht");
-        res.addFile("DosBox", "X-Wing.cht");
-        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - Player Codes.js");
-        res.addFile("DosBox/scripts/Strike Commander", "Strike Commander - CPU Codes.js");
-        res.addFile("DosBox/scripts/Command & Conquer - Red Alert", "Command & Conquer - Red Alert.js");
-        res.addFile("DosBox/scripts/Lands Of Lore", "Lands Of Lore.js");
-        res.addFile("DosBox/scripts/X-Wing", "X-Wing.js");
-
-        res.addDirectory("PS2");
-        res.addFile("PS2", "Victorious Boxers - Ippo's Road To Glory.cht");
+        dirs.forEach(res::addDirectory);
+        rl.forEach(f -> res.addFile(f.getDirectory(), f.getFile()));
         res.process();
     }
 
@@ -194,6 +185,17 @@ public class CheatApplication {
             ctx.json(new Failure("Could not parse message"));
         }
     }
+
+    private void triggerTrainer(Context ctx) {
+        try {
+            HotKey key = ctx.bodyAsClass(HotKey.class);
+            CompletableFuture<Response> response = addMessageWithResponse(new Message(new TrainerTrigger(key)));
+            ctx.json(response);
+        } catch (Exception e) {
+            ctx.json(new Failure("Could not parse message"));
+        }
+    }
+
 
 
     private void resetGameCheat(Context ctx) {
@@ -228,7 +230,7 @@ public class CheatApplication {
     }
 
     public static void main(String[] args) {
-        //Process.debugMode = true;
+        Process.debugMode = true;
         CheatApplication cheatApplication = new CheatApplication();
         cheatApplication.start();
     }
@@ -247,6 +249,19 @@ public class CheatApplication {
         }
 
     }
+
+    private Response getGameTrainer() {
+        if (Process.getInstance() == null) {
+            log.error("No process is running...");
+            return new Failure("No process running...");
+        }
+        Trainer trainer = Process.getInstance().getCheatFile().getTrainer();
+        if (trainer == null) {
+            return new Failure("No trainer options...");
+        }
+        return new TrainerOptions(trainer.getHotKeys());
+    }
+
 
     private void populateGames(Context ctx, String system) {
         ctx.json(populateGameList(getGson(), system, cheatDir));

@@ -1,0 +1,39 @@
+{
+  "game": "The Bouncer",
+  "regionSize": [{"low": 13000000, "high": 42000000}],
+  "process": "pcsx2.exe",
+  "cheats": [
+	 {
+      "name": "Sion Barzahd",
+      "codes": [{ "offset": 567844708, "value": "b 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 FF 00 00 00 07 00 00 00" }]
+     },
+	 {
+      "name": "Volt Krueger",
+      "codes": [{ "offset": 567852584, "value": "b 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 FF 00 00 00 07 00 00 00" }]
+	 },
+	 {
+      "name": "Kou Leifoh",
+      "codes": [{ "offset": 567852696, "value": "b 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 00 00 00 00 2C 01 00 00 2C 01 00 00 FF 00 00 00 07 00 00 00" }]
+	 },
+	 {
+      "name": "Instant Enemy Death",
+	  "stopSearchOnResult": false,
+	  "scan": "48 12 38 00 ?? 00 00 00 ?? ?? 00 00",
+      "codes": [{ "offset": 8, "value": "d 0 s 2", "operations":[
+			{ "type": "filter", "data": { "offset":4, "low": 3, "high": 30 } }
+	  ]}]
+	 },
+	 {
+      "name": "Infinite Health",
+	  "stopSearchOnResult": false,
+	  "resetOnWrite": true,
+	  "scan": "48 12 38 00 ?? 00 00 00 ?? ?? 00 00",
+      "codes": [{ "offset": 8, "value": "d 300 s 2", "operations":[
+			{ "type": "filter", "data": { "offset":4, "low": 1, "high": 9 } }
+	  ]}]
+	 }	 	 
+  ],
+  "scripts": [
+	
+  ]
+}

@@ -3,44 +3,45 @@ package engine;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.BaseTSD;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import games.Game;
 import games.RunnableCheat;
-import io.Cheat;
-import io.CheatFile;
-import io.Code;
-import io.Trigger;
+import io.*;
 import message.Message;
 import message.ProcessComplete;
 import org.jnativehook.GlobalScreen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.Script;
+import util.FormatTools;
 
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 
+import static com.sun.jna.platform.win32.WinNT.PAGE_EXECUTE_READWRITE;
 import static com.sun.jna.platform.win32.WinNT.PAGE_READWRITE;
 
 public class Process {
     static Logger log = LoggerFactory.getLogger(Process.class);
     static private Process instance = null;
     static public boolean debugMode = false;
-    private int pid;
+    private long pid;
     private static WinNT.HANDLE handle = null;
     private WinNT.HWND selectedHWND;
     CheatFile cheatFile;
     List<io.Cheat> cheatList;
     List<Script> scriptList;
-    private List<Long> regionSize;
+    private List<RegionSizeRange> regionSize;
     private boolean closed;
     private Thread searchThread;
     private Thread writeThread;
+    private Thread trainerThread;
     private RunnableCheat data;
     private String gameName;
     private final BlockingQueue<Message> messageQueue;
@@ -64,12 +65,13 @@ public class Process {
         this(messageQueue);
         this.data = data;
         this.cheatFile = readFile(data);
-        this.pid = getProcessID(cheatFile.getWindow());
+        this.pid = new FindProcess().getProcess(cheatFile.getProcess()).getPid();
         openProcess();
         this.gameName = cheatFile.getGame();
         this.cheatList = cheatFile.getCheats();
         this.scriptList = createScripts(data);
         this.regionSize = cheatFile.getRegionSize();
+        openTrainer();
         keyHandler = new KeyHandler();
         if (!debugMode) {
             GlobalScreen.addNativeKeyListener(keyHandler);
@@ -81,7 +83,24 @@ public class Process {
 
     }
 
-      public static Process create(RunnableCheat data, BlockingQueue<Message> messageQueue) throws Exception {
+    private void openTrainer() {
+        Trainer trainer = this.cheatFile.getTrainer();
+        if (trainer == null)
+            return;
+        try {
+            //is the trainer already running?
+            String trainerApp = trainer.findTrainerApp(getGameDirectory(this.data));
+            FindProcess fp = new FindProcess();
+            if (fp.exists(trainerApp))
+                return;
+            String [] cmd = {"cmd.exe", "/c", Paths.get(trainerApp).toAbsolutePath().toString() };
+            Runtime.getRuntime().exec(cmd);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Process create(RunnableCheat data, BlockingQueue<Message> messageQueue) throws Exception {
         if (instance != null) {
             log.warn("You are opening a new process without closing the old");
             instance.exit();
@@ -112,45 +131,22 @@ public class Process {
         return scripts;
     }
 
+    private String getGameDirectory(RunnableCheat data) {
+        return String.format("%s/%s", data.getDirectory(), data.getSystem());
+    }
+
     private CheatFile readFile(RunnableCheat data) throws Exception {
 
-        try (FileReader fr = new FileReader(String.format("%s/%s/%s", data.getDirectory(), data.getSystem(), data.getCht()))) {
+        try (FileReader fr = new FileReader(String.format("%s/%s", getGameDirectory(data), data.getCht()))) {
             return CheatApplication.getGson().fromJson(fr, CheatFile.class);
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
 
-    private int getProcessID(CheatFile.Window window) throws Exception {
-        selectedHWND = null;
-        int count = 0;
-        while (count < 5) {
-            User32.INSTANCE.EnumWindows((hwnd, pointer) -> {
-                char[] windowText = new char[512];
-                User32.INSTANCE.GetWindowText(hwnd, windowText, 512);
-                String wText = Native.toString(windowText);
-                if (wText.contains(window.getWindowTitle())) {
-                    selectedHWND = hwnd;
-                    return false;
-                }
-                return true;
-            }, null);
-            if (selectedHWND != null)
-                break;
-            count++;
-            Thread.sleep(500);
-        }
-
-        if (selectedHWND == null) {
-            throw new Exception("Could not find process!");
-        }
-        IntByReference ref = new IntByReference();
-        User32.INSTANCE.GetWindowThreadProcessId(selectedHWND, ref);
-        return ref.getValue();
-    }
-
     public void exit() {
         closed = true;
+        readMemory = null;
         if (writeThread != null) {
             try {
                 writeThread.join();
@@ -163,6 +159,14 @@ public class Process {
             try {
                 searchThread.join();
                 searchThread = null;
+            } catch (InterruptedException e) {
+                log.warn("Thread exit interrupted.");
+            }
+        }
+        if (trainerThread != null) {
+            try {
+                trainerThread.join();
+                trainerThread = null;
             } catch (InterruptedException e) {
                 log.warn("Thread exit interrupted.");
             }
@@ -186,23 +190,42 @@ public class Process {
     }
 
     private void openProcess() {
-        handle = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
+        handle = Kernel32.INSTANCE.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, (int) pid);
+    }
+
+    private int willSearch(WinNT.MEMORY_BASIC_INFORMATION mbi, List<RegionSizeRange> regionSize, long pos) {
+        int res = 0;
+        if ( ((mbi.protect.intValue() & PAGE_EXECUTE_READWRITE) != 0) || ((mbi.protect.intValue() & PAGE_READWRITE) != 0) ) {
+            res = 1;
+            if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size.insideRange(mbi.regionSize.longValue()))) {
+                res = 2;
+                if (passes == 0 || regionSet.contains(pos)) {
+                    res = 3;
+                }
+            }
+        }
+        return res;
     }
 
     public void performSearch() {
+
         WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
         long pos = 0;
         if (readMemory == null)
             readMemory = allocateMemory();
         scanMap.update(cheatList, scriptList);
         while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
-            if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
-                if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size == mbi.regionSize.longValue())) {
+            if ( ((mbi.protect.intValue() & PAGE_EXECUTE_READWRITE) != 0) || ((mbi.protect.intValue() & PAGE_READWRITE) != 0) ) {
+                if (regionSize.size() == 0 || regionSize.stream().anyMatch(size -> size.insideRange(mbi.regionSize.longValue()))) {
                     if (passes == 0 || regionSet.contains(pos)) { //this is a new region for some reason, let's ignore it.
-                        Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), readMemory, mbi.regionSize.intValue(), null);
-                        scanMap.search(pos, readMemory, mbi.regionSize.longValue());
-                        regionSet.add(pos);
-                        log.trace("Searching...");
+                        seachMemory(mbi, pos);
+                    }
+                    else if (!regionSet.contains(pos)){
+                        log.warn("New memory region found {}-{} {}, reallocating memory", FormatTools.valueToHex(pos), FormatTools.valueToHex(pos+mbi.regionSize.longValue()), mbi.regionSize.longValue());
+                        readMemory = null;
+                        break;
+                        //readMemory = allocateMemory();
+                        //seachMemory(mbi, pos);
                     }
                 }
             }
@@ -211,14 +234,28 @@ public class Process {
         passes++;
         searchComplete();
         scanMap.writeResults();
+        if (readMemory == null) {
+            passes = 0;
+            regionSet.clear();
+        }
+    }
+
+    private void seachMemory(WinNT.MEMORY_BASIC_INFORMATION mbi, long pos) {
+        Kernel32.INSTANCE.ReadProcessMemory(handle, new Pointer(pos), readMemory, mbi.regionSize.intValue(), null);
+        scanMap.search(pos, readMemory, mbi.regionSize.longValue());
+        regionSet.add(pos);
+        log.trace("Searching...");
     }
 
     private Memory allocateMemory() {
         long pos = 0;
         long maxMemory = Long.MIN_VALUE;
+        if (!hasCheats()) {
+            return new Memory(1);
+        }
         WinNT.MEMORY_BASIC_INFORMATION mbi = new WinNT.MEMORY_BASIC_INFORMATION();
         while (Kernel32.INSTANCE.VirtualQueryEx(handle, new Pointer(pos), mbi, new BaseTSD.SIZE_T(mbi.size())).intValue() != 0) {
-            if ((mbi.protect.intValue() & PAGE_READWRITE) != 0) {
+            if ( ((mbi.protect.intValue() & PAGE_EXECUTE_READWRITE) != 0) || ((mbi.protect.intValue() & PAGE_READWRITE) != 0) ) {
                 maxMemory = Math.max(maxMemory, mbi.regionSize.longValue());
             }
             pos += mbi.regionSize.longValue();
@@ -296,6 +333,10 @@ public class Process {
     public void start() {
         searchThread = new Thread(this::searchProcess);
         writeThread = new Thread(this::writeProcess);
+        if (cheatFile.getTrainer() != null) {
+            trainerThread = new Thread(this::trainProcess);
+            trainerThread.start();
+        }
         searchThread.start();
         writeThread.start();
     }
@@ -327,7 +368,9 @@ public class Process {
         readMemory = allocateMemory();
         while (!closed) {
             try {
-                searchLoop();
+                if (hasCheats()) {
+                    searchLoop();
+                }
                 Thread.sleep(300);
             } catch (InterruptedException e) {
                 log.warn("Search thread interrupted!");
@@ -340,6 +383,16 @@ public class Process {
         }
         messageQueue.add(new Message(new ProcessComplete(true)));
         log.info("Search and apply thread exited");
+    }
+
+    public void trainProcess() {
+        while (!closed) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void toggleCheat(int id) throws Exception {
@@ -416,5 +469,31 @@ public class Process {
 
     public static Process getInstance() {
         return instance;
+    }
+
+    public void triggerTrainer(HotKey key) {
+        Trainer trainer = cheatFile.getTrainer();
+        if (trainer == null)
+            return;
+        Optional<HotKey> op = trainer.getHotKeys().stream().filter(e -> e.equals(key)).findFirst();
+        if (op.isPresent()) {
+            HotKey hk = op.get();
+            hk.trigger();
+        }
+    }
+
+    private boolean noCheats() {
+        boolean empty = true;
+        if (cheatList != null && !cheatList.isEmpty())
+            empty = false;
+        if (scriptList != null) {
+            if (scriptList.stream().anyMatch(s -> !s.getAllCheats().isEmpty()))
+                empty = false;
+        }
+        return empty;
+    }
+
+    public boolean hasCheats() {
+        return !noCheats();
     }
 }

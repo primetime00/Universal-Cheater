@@ -1,12 +1,7 @@
 {
   "game": "Unit Test Game",
   "regionSize": [],
-  "window": {
-    "windowClass": "",
-    "windowTitle": "UnitTestApp.exe",
-    "partialMatch": true
-  },
-  "cheats": [
+  "process": "UnitTestApp.exe",  "cheats": [
     {
       "name": "Cheat 1",
       "scan": "5F 46 41 4B 45 00",

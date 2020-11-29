@@ -1,0 +1,36 @@
+{
+  "game": "Shadow Of The Colossus",
+  "regionSize": [{"low": 13000000, "high": 42000000}],
+  "process": "pcsx2.exe",
+  "cheats": [
+	{
+      "name": "Infinite Health",
+      "scan": "62 C3 00 00 02 43 00 00 62 C3 00 00 02 43 00 00 04 C4 00 00",
+      "codes": [{ "offset": -238, "value": "d 1000.0" }]
+    },  	
+	{
+      "name": "Infinite Grip",
+      "scan": "62 C3 00 00 02 43 00 00 62 C3 00 00 02 43 00 00 04 C4 00 00",
+      "codes": [{ "offset": -242, "value": "d 200.0" }]
+    },
+	{
+      "name": "Infinite Weapon Power",
+      "scan": "62 C3 00 00 02 43 00 00 62 C3 00 00 02 43 00 00 04 C4 00 00",
+      "codes": [{ "offset": -234, "value": "d 200.0" }]
+    },	
+	{
+      "name": "Moon Jump",
+      "scan": "4C 67 8F 01 50 67 8F 01",
+	  "trigger": { "type":  "keypress", "behavior":  "hold", "key": 81},
+      "codes": [{ "offset": 96, "value": "d 5.0" }]
+    },
+	{
+      "name": "Quick Speed",
+      "scan": "4C 67 8F 01 50 67 8F 01",
+	  "trigger": { "type":  "keypress", "behavior":  "hold", "key": 87},
+      "codes": [{ "offset": 532, "value": "d 10.0" }]
+    }		
+  ],
+  "scripts": [
+  ]
+}

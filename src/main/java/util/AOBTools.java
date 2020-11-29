@@ -22,4 +22,38 @@ public class AOBTools {
         return res;
     }
 
+    public static String displayAOBCompare(AOB aob, byte [] bytes) {
+        StringBuffer buf = new StringBuffer();
+        int index = 0;
+        for (short s : aob.getAob()) {
+            if (s > 0xFF) {
+                buf.append("?? ");
+            }
+            else {
+                if (index >= bytes.length)
+                    break;
+                if (s == (short)bytes[index]) {
+                    buf.append(String.format("%02X ", s));
+                }
+                else {
+                    buf.append("xx ");
+                }
+            }
+            index++;
+        }
+        return buf.toString();
+    }
+
+    public static String displayAOB(AOB aob) {
+        StringBuffer buf = new StringBuffer();
+        for (short s : aob.getAob()) {
+            if (s > 0xFF) {
+                buf.append("?? ");
+            }
+            else {
+                buf.append(String.format("%02X ", s));
+            }
+        }
+        return buf.toString();
+    }
 }

@@ -25,6 +25,7 @@ public class Cheat {
     static Logger log = LoggerFactory.getLogger(Cheat.class);
     private String name;
     private AOB scan;
+    private boolean absolute;
     protected List<Code> codes;
     private ReentrantLock lock;
     private Set<ArraySearchResult> validResults;
@@ -49,6 +50,7 @@ public class Cheat {
         enabled = true;
         lock = new ReentrantLock();
         monitors = new HashSet<>();
+        absolute = false;
     }
 
     public Cheat(String name, String scan, List<Code> codes, boolean enable, int identity, boolean multiMatch, boolean resetOnWrite, boolean stopSearchOnResult, List<Integer> parents, Trigger trigger, String scriptFile) {
@@ -163,6 +165,8 @@ public class Cheat {
     }
 
     public boolean verify() {
+        if (this.absolute)
+            return true;
         int prevResultSize = getResults().size();
         getResults().removeIf(res -> !res.verify());
         //we never had any codes
@@ -365,6 +369,13 @@ public class Cheat {
         return validResults;
     }
 
+    public int getNumberOfValidResults() {
+        if (getResults() != null) {
+            return getResults().size();
+        }
+        return 0;
+    }
+
 
     public int writeCodes() {
         int codesWritten = 0;
@@ -472,13 +483,16 @@ public class Cheat {
         public Cheat deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
             JsonObject val = jsonElement.getAsJsonObject();
             Cheat c = new Cheat();
-            if (!val.has("name") || !val.has("scan") || !val.has("codes")) {
+            if (!val.has("name") || !val.has("codes")) {
                 Cheat.log.error("Cannot parse cheat, not enough information");
                 Cheat.log.error("{}", jsonElement.toString());
                 return c;
             }
+            if (!val.has("scan")) { //this is an absolute code
+                c.absolute = true;
+            }
             c.name = val.get("name").getAsString();
-            c.scan = jsonDeserializationContext.deserialize(val.get("scan"), AOB.class);
+            c.scan = val.has("scan") ? jsonDeserializationContext.deserialize(val.get("scan"), AOB.class) : AOB.Empty;
             c.codes = val.has("codes") ? jsonDeserializationContext.deserialize(val.get("codes"), new TypeToken<ArrayList<Code>>(){}.getType()) : new ArrayList<>();
             c.identity = val.has("identity") ? val.get("identity").getAsInt() : -1;
             c.simulate = val.has("simulate") && val.get("simulate").getAsBoolean();

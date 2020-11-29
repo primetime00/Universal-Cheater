@@ -1,6 +1,7 @@
-angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$route', '$interval', 'appCom',
-    function($scope, $location, $route, $interval, appCom) {
+angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$route', '$interval', '$sce','appCom',
+    function($scope, $location, $route, $interval, $sce, appCom) {
         $scope.cheats = [];
+        $scope.trainerOptions = [];
         var ifunc = undefined;
         var hash = 0;
         var starting = true;
@@ -43,6 +44,7 @@ angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$r
         $scope.start = function(system, game) {
             appCom.setTitle(game['game']);
             appCom.getCheats(system, game, $scope.cheatsCB);
+
         }
 
         $scope.$on('$destroy', function() {
@@ -80,7 +82,19 @@ angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$r
             },
             1000);
 
+            appCom.getTrainer($scope.trainerCB);
+
+
         }
+
+        $scope.trainerCB = function(trainer) {
+            if (trainer.status != "FAIL") {//we have a trainer
+                $scope.trainerOptions = trainer.trainerItems;
+                console.log("trainer", $scope.trainerOptions);
+                $scope.$apply();
+            }
+        }
+
 
         $scope.onGame = function(data) {
             appCom.setGame(data);
@@ -195,6 +209,9 @@ angular.module('uCheatApp').controller('cheatsCtrl', ['$scope', '$location', '$r
             });
         });
 
+        $scope.triggerTrainer = function(option) {
+            appCom.triggerTrainer(option, function(res) { });
+        }
 
 
 

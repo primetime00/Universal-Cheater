@@ -55,6 +55,30 @@ angular.module('uCheatApp').service('appCom', ["$rootScope", function($rootScope
         });
     }
 
+    this.getTrainer = function(callback) {
+        axios.get('getGameTrainer')
+            .then(function(resp) {
+                console.log(resp);
+                callback(resp.data);
+        })
+        .catch(function(error) {
+            $rootScope.$broadcast('network.error', error)
+        });
+    }
+
+    this.triggerTrainer = function(option, callback) {
+        axios.post('triggerTrainer', {"name": option.name, "keys": option.keys})
+            .then(function(resp) {
+                console.log(resp);
+                callback(resp.data);
+        })
+        .catch(function(error) {
+            $rootScope.$broadcast('network.error', error)
+        });
+    }
+
+
+
     this.exitCheat = function(callback) {
         axios.post('exitCheat')
             .then(function(resp) {

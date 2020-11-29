@@ -1,11 +1,7 @@
 {
   "game": "Victorious Boxers",
-  "regionSize": [],
-  "window": {
-    "windowClass": "",
-    "windowTitle": "Slot:",
-    "partialMatch": true
-  },
+  "regionSize": [{"low": 13000000, "high": 42000000}],
+  "process": "pcsx2.exe",
   "cheats": [
 	{
       "name": "Infinite Health",

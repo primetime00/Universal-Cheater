@@ -24,9 +24,11 @@ public class Util {
         res.addFile("Cheat", "cheat2.cht");
         res.addFile("Cheat", "scripting.cht");
         res.addFile("Cheat", "testcode.cht");
+        res.addFile("Cheat", "trainer.cht");
         res.addFile("Cheat/scripts", "script.js");
         res.addFile("Cheat/scripts", "testscript.js");
         res.addFile("Cheat/scripts", "inc.js");
+        res.addFile("Cheat/trainers", "Trainer.exe");
         res.process(name);
     }
 
