@@ -80,6 +80,7 @@ public class Process {
         this.scanMap.update(this.cheatList, this.scriptList);
         if (cheatList != null)
             this.cheatList.stream().filter(e->e.getScriptHandler() != null).forEach(c -> c.getScriptHandler().initialize(c));
+        this.scanMap.initializeAbsolutes(cheatList, scriptList);
 
     }
 
@@ -324,7 +325,7 @@ public class Process {
 
     private boolean searchNeeded() {
         for (Cheat c : scanMap.getEveryCheat()) {
-            if (c.isEnabled())
+            if (c.isEnabled() && !c.getScan().isAbsolute())
                 return true;
         }
         return false;

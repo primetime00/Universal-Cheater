@@ -3,10 +3,16 @@ package io;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.Kernel32;
+import engine.Process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import script.ArraySearchResult;
 import script.ArraySearchResultList;
+import script.ScriptHandler;
+import util.FormatTools;
+import util.MemoryTools;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -16,6 +22,7 @@ public class Code {
     private List<OVPair> offsets;
     protected List<OperationProcessor> operations;
     transient protected int currentProcessor;
+    transient private ScriptHandler scriptHandler;
 
     public Code() {
         this.currentProcessor = -1;
@@ -43,6 +50,11 @@ public class Code {
             this.currentProcessor = 0;
         else
             this.currentProcessor = -1;
+    }
+
+    public Code(List<OVPair> offsets, List<OperationProcessor> operations, ScriptHandler scriptHandler) {
+        this(offsets, operations);
+        this.scriptHandler = scriptHandler;
     }
 
     @Override
@@ -153,6 +165,10 @@ public class Code {
 
     }
 
+    public boolean hasPreRead() {
+        return scriptHandler != null;
+    }
+
     @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();
@@ -170,6 +186,19 @@ public class Code {
             buf.append(pair.getAddress(addr));
         }
         return buf.toString();
+    }
+
+    public boolean preReadCheck(Code code, Collection<ArraySearchResult> results) {
+        for (ArraySearchResult result : results) {
+            for (OVPair ovPair : code.getOffsets()) {
+                Memory mem = MemoryTools.readMemory(code, result, ovPair.getValue().size());
+                long val = FormatTools.memoryToValue(mem, 0, (int) mem.size());
+                if (! (boolean)scriptHandler.handleReturn(ScriptHandler.HANDLE_TYPE.PREREAD, ovPair.getOffset(), val)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 

@@ -85,6 +85,9 @@ public class ArraySearchResult {
     public boolean verify() {
         if (!isValid())
             return false;
+        if (aob.isEmpty()) {
+            return true;
+        }
         ByteBuffer bytes = ByteBuffer.allocate(256);
         Memory mem = new Memory(aob.size());
         Kernel32.INSTANCE.ReadProcessMemory(Process.getHandle(), new Pointer(getAddress()), mem, aob.size(), null);

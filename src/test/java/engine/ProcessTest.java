@@ -1,6 +1,9 @@
 package engine;
 
 import com.google.gson.Gson;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.WinDef;
 import games.RunnableCheat;
 import io.*;
 import message.Message;
@@ -58,7 +61,7 @@ public class ProcessTest {
     public void testRead() throws IOException {
         process.performSearch(); //gather initial results and filter
         CheatFile f = process.getCheatFile();
-        assertEquals(3, f.getCheats().size());
+        assertEquals(4, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
         List<ArraySearchResult> validList = getValidResults(c);
         assertEquals(1, validList.size());
@@ -91,7 +94,7 @@ public class ProcessTest {
     public void testOperations() throws IOException {
         process.performSearch();
         CheatFile f = process.getCheatFile();
-        assertEquals(3, f.getCheats().size());
+        assertEquals(4, f.getCheats().size());
         assertEquals(2, f.getCheats().get(0).getCodes().size());
         assertTrue(f.getCheats().get(0).hasOperations());
         assertTrue(f.getCheats().get(0).getCodes().get(0).hasOperations());
@@ -133,7 +136,7 @@ public class ProcessTest {
         List<Detect> detects = f.getCheats().get(0).getCodes().get(0).getDetects();
         f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(detects);
         process.performSearch(); //gather initial results and filter
-        assertEquals(3, f.getCheats().size());
+        assertEquals(4, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
         //verify the current value
         Code code = c.getCodes().get(0);
@@ -164,7 +167,7 @@ public class ProcessTest {
         List<Detect> detects = f.getCheats().get(0).getCodes().get(0).getDetects();
         f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(detects);
         process.performSearch(); //gather initial results and filter
-        assertEquals(3, f.getCheats().size());
+        assertEquals(4, f.getCheats().size());
         assertEquals(3, f.getCheats().get(1).getResults().size());
         assertEquals(3, f.getCheats().get(2).getResults().size());
         process.writeCheats();
@@ -211,7 +214,7 @@ public class ProcessTest {
         List<Detect> detects = f.getCheats().get(0).getCodes().get(0).getDetects();
         f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(detects);
         process.performSearch(); //gather initial results and filter
-        assertEquals(3, f.getCheats().size());
+        assertEquals(4, f.getCheats().size());
         Cheat c = f.getCheats().get(0);
         //verify the current value
         Code code = c.getCodes().get(0);
@@ -226,6 +229,33 @@ public class ProcessTest {
         process.writeCheats();
         assertEquals(0, getValidResults(c).size());
         assertEquals(0, c.getResults().size());
+
+    }
+
+    @Test
+    public void testAbsolute() throws IOException {
+        CheatFile f = process.getCheatFile();
+        List <Cheat> badCheat = f.getCheats().stream().filter(e -> !e.getName().contains("Absolute")).collect(Collectors.toList());
+        f.getCheats().removeAll(badCheat);
+        process.performSearch();
+        assertEquals(1, f.getCheats().size());
+    }
+
+    @Test
+    public void testMemoryProtection() {
+        CheatFile f = process.getCheatFile();
+        List<Detect> detects = f.getCheats().get(0).getCodes().get(0).getDetects();
+        f.getCheats().get(0).getCodes().get(0).getOperations().removeAll(detects);
+        process.performSearch(); //gather initial results and filter
+        assertEquals(4, f.getCheats().size());
+        Cheat c = f.getCheats().get(0);
+
+        //get First result and modify it's memory page protection
+        ArraySearchResult res = c.getResults().iterator().next();
+        long addr = res.getAddress();
+        WinDef.DWORDByReference result = new WinDef.DWORDByReference();
+        int success = MemoryProtection.INSTANCE.VirtualProtectEx(Process.getHandle(), new Pointer(addr), 4, Kernel32.PAGE_READWRITE, result);
+        assertEquals(1, success);
 
     }
 

@@ -22,6 +22,10 @@ public class AOB {
     }
 
     public AOB(String aobN) {
+        if (aobN.isEmpty()) {
+            this.aob = null;
+            return;
+        }
         this.aob = parseAOB(aobN);
         this.startIndex = 0;
         for (int i=0; i<this.aob.length; ++i) {
@@ -57,6 +61,10 @@ public class AOB {
 
     public boolean isEmpty() {
         return aob == null;
+    }
+
+    public boolean isAbsolute() {
+        return isEmpty();
     }
 
     public int getStartIndex() {

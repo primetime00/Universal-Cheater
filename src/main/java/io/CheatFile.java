@@ -8,6 +8,7 @@ import java.util.List;
 public class CheatFile {
     static Logger log = LoggerFactory.getLogger(CheatFile.class);
     String game;
+    boolean disabled;
     String process;
     List<RegionSizeRange> regionSize;
     List<io.Cheat> cheats;
@@ -36,5 +37,9 @@ public class CheatFile {
 
     public String getProcess() {
         return process;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
     }
 }

@@ -1,0 +1,8 @@
+{
+  "game": "Unit Script Test Game",
+  "regionSize": [],
+  "process": "UnitTestApp.exe",
+  "scripts": [
+    "readCheck.js"
+  ]
+}

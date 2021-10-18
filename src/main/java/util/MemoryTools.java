@@ -3,6 +3,8 @@ package util;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.WinDef;
+import engine.MemoryProtection;
 import engine.Process;
 import io.Cheat;
 import io.Code;
@@ -20,7 +22,15 @@ public class MemoryTools {
             code.getOffsets().forEach(ovPair -> {
                 long code_address = result.getAddress() + ovPair.getOffset();
                 Memory mem = ovPair.getValue().getMemory();
-                Kernel32.INSTANCE.WriteProcessMemory(Process.getHandle(), new Pointer(code_address), mem, (int) mem.size(), null);
+                boolean res = Kernel32.INSTANCE.WriteProcessMemory(Process.getHandle(), new Pointer(code_address), mem, (int) mem.size(), null);
+                if (!res) {
+                    WinDef.DWORDByReference oldAccess = new WinDef.DWORDByReference();
+                    int success = MemoryProtection.INSTANCE.VirtualProtectEx(Process.getHandle(), new Pointer(code_address), (int)mem.size(), Kernel32.PAGE_READWRITE, oldAccess);
+                    log.warn("Changing access {}", success);
+                }
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] Wrote {} to {}", res, mem.getShort(0), FormatTools.valueToHex(code_address));
+                }
             });
         });
     }
@@ -69,10 +79,14 @@ public class MemoryTools {
     }
 
     static public byte[] readBytes(Code c, ArraySearchResult result, int size) {
+        return readMemory(c, result, size).getByteArray(0, size);
+    }
+
+    static public Memory readMemory(Code c, ArraySearchResult result, int size) {
         long code_address = result.getAddress() + c.getFirstOffset();
         Memory mem = new Memory(size);
         Kernel32.INSTANCE.ReadProcessMemory(Process.getHandle(), new Pointer(code_address), mem, (int) mem.size(), null);
-        return mem.getByteArray(0, size);
+        return mem;
     }
 
 

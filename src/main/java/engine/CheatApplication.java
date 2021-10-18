@@ -285,6 +285,8 @@ public class CheatApplication {
                 JsonObject obj = (JsonObject) root;
                 if (!obj.has("game"))
                     return;
+                if (cheatFile.isDisabled())
+                    return;
                 String cht = Files.getNameWithoutExtension(e);
                 games.add(new Game(system, obj.get("game").getAsString(), cht+".cht"));
             } catch (FileNotFoundException ex) {

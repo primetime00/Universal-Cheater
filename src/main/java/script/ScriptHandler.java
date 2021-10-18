@@ -59,7 +59,9 @@ public class ScriptHandler {
         ON_TOGGLE,
         ON_RESULTS,
         ON_MONITOR_CHANGE,
-        WRITE_OVERRIDE
+        WRITE_OVERRIDE,
+        PREREAD,
+        VERIFY
     };
     List<String> handleTypes;
     Map<HANDLE_TYPE, ScriptObjectMirror> handleMap;
@@ -68,7 +70,7 @@ public class ScriptHandler {
         handleMap = new HashMap<>();
         handleTypes = Arrays.asList(HANDLE_TYPE.BEFORE_WRITE.name(), HANDLE_TYPE.AFTER_WRITE.name(), HANDLE_TYPE.ON_RESET.name(),
                 HANDLE_TYPE.ON_TOGGLE.name(), HANDLE_TYPE.ON_TRIGGER.name(), HANDLE_TYPE.ON_RESULTS.name(), HANDLE_TYPE.WRITE_OVERRIDE.name(),
-                HANDLE_TYPE.ON_MONITOR_CHANGE.name());
+                HANDLE_TYPE.ON_MONITOR_CHANGE.name(), HANDLE_TYPE.PREREAD.name(), HANDLE_TYPE.VERIFY.name());
     }
 
     public ScriptHandler(ScriptEngine engine) {
@@ -126,6 +128,23 @@ public class ScriptHandler {
         }
     }
 
+    public Object handleReturn(HANDLE_TYPE type, Object ... data) {
+        if (!has(type))
+            return null;
+
+        ScriptObjectMirror func = handleMap.get(type);
+        if (!func.isFunction()) {
+            log.error("Could not call handler for cheat [{}].  It's not a function", type.name());
+            return null;
+        }
+        try {
+            return func.call(this, data);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
+
     public Object handleReturn(HANDLE_TYPE type) {
         if (!has(type))
             return null;
@@ -142,7 +161,6 @@ public class ScriptHandler {
         }
         return null;
     }
-
 
 
 

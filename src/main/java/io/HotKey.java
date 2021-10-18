@@ -160,6 +160,8 @@ public class HotKey {
                 case ".": code = KeyEvent.VK_PERIOD; break;
                 case "/": code = KeyEvent.VK_SLASH; break;
                 case "space": code = KeyEvent.VK_SPACE; break;
+                case "pgup": code = KeyEvent.VK_PAGE_UP; break;
+                case "pgdn": code = KeyEvent.VK_PAGE_DOWN; break;
                 default:
                     throw new IllegalArgumentException("Cannot type " + key.toLowerCase());
             }

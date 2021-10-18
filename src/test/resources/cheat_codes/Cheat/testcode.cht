@@ -56,6 +56,15 @@
           "value": "9"
         }
       ]
-    }
-  ]
+    },
+  {
+    "name": "Absolute Cheat",
+    "codes": [
+      {
+        "offset": 6767,
+        "value": "9"
+      }
+    ]
+  }
+]
 }

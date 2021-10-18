@@ -247,4 +247,29 @@ public class ScanMap {
             }
         }
     }
+
+    public void initializeAbsolutes(List<Cheat> cheatList, List<Script> scriptList) {
+        if (cheatList != null) {
+            for (Cheat c : cheatList) {
+                if (!c.getScan().isAbsolute())
+                    continue;
+                List<ArraySearchResult> res = new ArrayList<ArraySearchResult>();
+                res.add(new ArraySearchResult(c.getScan(), 0, 0));
+                c.addResults(res);
+            }
+        }
+        if (scriptList != null) {
+            for (Script s : scriptList) {
+                if (s.getAllCheats() != null) {
+                    for (Cheat c : s.getAllCheats()) {
+                        if (!c.getScan().isAbsolute())
+                            continue;
+                        List<ArraySearchResult> res = new ArrayList<ArraySearchResult>();
+                        res.add(new ArraySearchResult(c.getScan(), 0, 0));
+                        c.addResults(res);
+                    }
+                }
+            }
+        }
+    }
 }

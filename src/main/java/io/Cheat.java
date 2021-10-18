@@ -25,7 +25,6 @@ public class Cheat {
     static Logger log = LoggerFactory.getLogger(Cheat.class);
     private String name;
     private AOB scan;
-    private boolean absolute;
     protected List<Code> codes;
     private ReentrantLock lock;
     private Set<ArraySearchResult> validResults;
@@ -50,7 +49,6 @@ public class Cheat {
         enabled = true;
         lock = new ReentrantLock();
         monitors = new HashSet<>();
-        absolute = false;
     }
 
     public Cheat(String name, String scan, List<Code> codes, boolean enable, int identity, boolean multiMatch, boolean resetOnWrite, boolean stopSearchOnResult, List<Integer> parents, Trigger trigger, String scriptFile) {
@@ -165,7 +163,12 @@ public class Cheat {
     }
 
     public boolean verify() {
-        if (this.absolute)
+        if (this.getScriptHandler() != null && this.getScriptHandler().has(ScriptHandler.HANDLE_TYPE.VERIFY)) {
+            if (this.getScriptHandler().handleReturn(ScriptHandler.HANDLE_TYPE.VERIFY, new ArrayList<>(getResults())) == Boolean.FALSE) {
+                return false;
+            }
+        }
+        if (this.getScan().isAbsolute())
             return true;
         int prevResultSize = getResults().size();
         getResults().removeIf(res -> !res.verify());
@@ -382,8 +385,14 @@ public class Cheat {
         try {
             lock.lock();
             Collection<ArraySearchResult> validResults = getResults();
-            if (scriptHandler != null) scriptHandler.handle(ScriptHandler.HANDLE_TYPE.BEFORE_WRITE, new ArrayList<>(validResults), getCodes());
+            if (scriptHandler != null)
+                scriptHandler.handle(ScriptHandler.HANDLE_TYPE.BEFORE_WRITE, new ArrayList<>(validResults), getCodes());
             for (Code code : getCodes()) {
+                if (code.hasPreRead()) {
+                    if (!code.preReadCheck(code, validResults)) {
+                        continue;
+                    }
+                }
                 if (isSimulate()) {
                     MemoryTools.simulateWriteCode(this, code, validResults);
                 } else {
@@ -487,9 +496,6 @@ public class Cheat {
                 Cheat.log.error("Cannot parse cheat, not enough information");
                 Cheat.log.error("{}", jsonElement.toString());
                 return c;
-            }
-            if (!val.has("scan")) { //this is an absolute code
-                c.absolute = true;
             }
             c.name = val.get("name").getAsString();
             c.scan = val.has("scan") ? jsonDeserializationContext.deserialize(val.get("scan"), AOB.class) : AOB.Empty;

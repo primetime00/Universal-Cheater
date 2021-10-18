@@ -45,6 +45,9 @@ public class AOBTools {
     }
 
     public static String displayAOB(AOB aob) {
+        if (aob.isEmpty()) {
+            return "Empty";
+        }
         StringBuffer buf = new StringBuffer();
         for (short s : aob.getAob()) {
             if (s > 0xFF) {
